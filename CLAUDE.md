@@ -32,9 +32,11 @@ gh aw compile --dependabot
 ### Workflow Authoring Pipeline
 
 1. **Author** workflow source as markdown with YAML frontmatter in `workflows/` (canonical source)
-2. **Mirror** the same `.md` file into `.github/workflows/` (both locations must stay in sync — any add/edit/delete must be applied to both in the same change)
+2. **Mirror** the same `.md` file into `.github/workflows/` (for workflow source `.md` files, any add/edit/delete in one location must include the corresponding add/edit/delete in the other location in the same change)
 3. **Compile** with `gh aw compile` to produce `.lock.yml` files in `.github/workflows/`
 4. `.lock.yml` files are auto-generated (`linguist-generated=true`, `merge=ours` in `.gitattributes`) — never edit them by hand
+
+Scope note: the parity rule applies only to workflow source `.md` files (`workflows/*.md` and `.github/workflows/*.md`). It does not apply to generated `.lock.yml` files or standalone GitHub Actions `.yml` workflows.
 
 ### Directory Map
 
@@ -60,5 +62,5 @@ Supported engines: `copilot`, `claude`, `codex`, or custom.
 - When creating a workflow, produce exactly **one** `.md` file — do not create separate documentation files
 - Workflow lock files (`.lock.yml`) use `merge=ours` strategy; conflicts resolve by recompiling
 - Never merge Dependabot PRs that modify generated manifests (`.github/workflows/package.json`, etc.) — update the source `.md` files and rerun `gh aw compile --dependabot`
-- Before compiling or committing, diff-review staged changes to confirm every workflow source add/edit/delete in `workflows/` has a matching change in `.github/workflows/` (and vice-versa). If either side is missing, fix it before proceeding.
+- Before compiling or committing, diff-review staged changes to confirm every workflow source add/edit/delete in `workflows/*.md` has a matching change in `.github/workflows/*.md` (and vice-versa) in the same change. If either side is missing, fix it before proceeding.
 - The `CLAUDE.md` and `AGENTS.md` files must stay in sync (the `agents-doc-sync` workflow enforces this)
