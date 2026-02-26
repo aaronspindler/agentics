@@ -1,0 +1,7 @@
+- id: agentic-check
+  name: Agentic Check
+  description: LLM-powered review of staged git changes.
+  entry: agentic-check
+  language: python
+  pass_filenames: false
+  minimum_pre_commit_version: "3.0.0"
