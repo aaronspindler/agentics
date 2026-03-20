@@ -1,0 +1,17 @@
+repos:
+  - repo: local
+    hooks:
+      - id: agentic-check
+        name: Agentic Check
+        entry: agentic-check
+        language: python
+        pass_filenames: false
+        additional_dependencies:
+          - precommit-agentic-check==0.1.0
+        args:
+          - --provider=anthropic
+          - --model=claude-3-5-sonnet-latest
+          - --prompt-file=.ai/prompts/precommit_gate.md
+          - --strict=warn
+          - --context-lines=40
+          - --max-tokens=1200

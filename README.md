@@ -14,6 +14,16 @@ A central repository for reusable configuration, rules, and workflows for AI-pow
 
 - `workflows/` — Reusable agentic workflow definitions (for `gh aw`)
 - `.github/workflows/` — This repository's own installed/compiled workflows and maintenance jobs
+- `precommit-agentic-check/` — Isolated Python subproject for an LLM-backed pre-commit hook
+
+## Subprojects
+
+### precommit-agentic-check
+
+- Purpose: Run an agentic check in pre-commit using staged diff + nearby context.
+- Runtime: Python package (`agentic-check` CLI).
+- Config surface: model/provider/prompt in `.pre-commit-config.yaml`, credentials via env vars.
+- Docs: `precommit-agentic-check/README.md`
 
 ## Getting Started with gh aw
 
