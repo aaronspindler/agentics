@@ -32,7 +32,7 @@ Check the target directory for marker files. First match wins:
 
 | Marker | Type | Lint | Test | Install |
 |--------|------|------|------|---------|
-| `pants.toml` | Pants | `just pre-commit` | `just test . -v` | skip |
+| `pants.toml` + `justfile` or `Justfile` | Pants | `just pre-commit` | `just test . -v` | skip |
 | `pyproject.toml` + `poetry.lock` + `Makefile` with `test` target | Poetry+Make | `poetry run pre-commit run --all-files` | `make test` | `poetry install` |
 | `pyproject.toml` + `poetry.lock` | Poetry | `poetry run pre-commit run --all-files` | `poetry run pytest` | `poetry install` |
 | `package.json` + `pnpm-lock.yaml` | pnpm | `pnpm run lint` | `pnpm run test` | `pnpm install` |

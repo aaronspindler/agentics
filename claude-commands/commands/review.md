@@ -43,7 +43,7 @@ Spawn a general-purpose agent with these instructions and context:
 - **Tasks**:
   - **2a. PR Metadata & Diff Analysis**: Fetch PR diff (`gh pr diff <PR_NUMBER> --repo <OWNER>/<REPO>`), PR files with stats (`gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/files --paginate`), and PR description (`gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json body`). Analyze: scope of changes, files touched, lines added/removed, which modules affected.
   - **2b. Existing PR Comments**: Fetch all existing review feedback using the provided PR Comment Fetching instructions (includes the Review Thread GraphQL Query). Classify each comment author as Human or Bot using the provided rules. Note what has already been flagged.
-  - **2e. CI Status**: Run `gh pr checks --repo <OWNER>/<REPO> <PR_NUMBER>`. For any failed checks, get logs: `gh run view <RUN_ID> --repo <OWNER>/<REPO> --log-failed`. Collect: check name, failure summary, relevant log lines.
+  - **2c. CI Status**: Run `gh pr checks --repo <OWNER>/<REPO> <PR_NUMBER>`. For any failed checks, get logs: `gh run view <RUN_ID> --repo <OWNER>/<REPO> --log-failed`. Collect: check name, failure summary, relevant log lines.
 - **Return**: All collected data — diff, file stats, PR description, classified comments, and CI status.
 
 ### Subagent 2: Local Validation (general-purpose agent)
@@ -51,8 +51,8 @@ Spawn a general-purpose agent with these instructions and context:
 Spawn a general-purpose agent with these instructions and context:
 - **Provide**: The worktree path (from Phase 1), the detected lint command and test command from Phase 0, the target directory within the worktree.
 - **Tasks**:
-  - **2c. Lint**: `cd` to the sub-project directory within the worktree. Run the detected lint command. Collect: file, line, rule/hook, message for each issue. If lint auto-fixes files, note it (but do NOT commit).
-  - **2d. Tests**: After lint completes, run the detected test command. Collect: test name, file, assertion error or traceback summary.
+  - **2d. Lint**: `cd` to the sub-project directory within the worktree. Run the detected lint command. Collect: file, line, rule/hook, message for each issue. If lint auto-fixes files, note it (but do NOT commit).
+  - **2e. Tests**: After lint completes, run the detected test command. Collect: test name, file, assertion error or traceback summary.
 - **Important**: Lint MUST run before tests (auto-fixers modify files). These two tasks are sequential within this agent.
 - **Return**: Lint results and test results.
 
@@ -96,10 +96,76 @@ After all 3 subagents complete:
    - If `400 < total_lines_changed <= 800`: Generate a **HYGIENE** finding noting the PR is getting large, with a brief suggestion to consider splitting.
    - If `total_lines_changed > 800`: Generate a **HYGIENE** finding. Analyze the changed files and suggest specific ways to split the PR (e.g., "the migration files could be a separate PR", "test additions could be landed first", "refactoring in X could be separated from the feature logic in Y").
    - If file count > 50: Also flag with **HYGIENE** severity noting the breadth of changes across many files.
-   - Store the PR size assessment for inclusion in the Phase 3 report.
-5. Proceed to Phase 3 with the synthesized results.
+   - Store the PR size assessment for inclusion in the Phase 4 report.
+5. Proceed to Phase 3: Finding Validation with the synthesized results.
 
-## Phase 3: Review Report
+## Phase 3: Finding Validation
+
+Validate each synthesized finding against the actual code to eliminate false positives before generating the final report. The worktree is still available at this point.
+
+### 3a. Prepare Validation Batches
+
+1. **Auto-validate machine findings**: Findings with severity LINT, TEST_FAIL, or CI are backed by tool output and do not need re-validation. Mark these VALID automatically and exclude them from the validation batches.
+2. **Partition remaining findings by file**: Group all non-auto-validated findings by their target file path. Each group contains all findings for one file.
+3. **Batch the groups**: If there are 5 or fewer file groups, each group becomes one batch. If there are more than 5, combine the smallest groups until you have at most 5 batches. Aim to keep batch sizes roughly even.
+4. **Skip agent spawning if trivial**: If all remaining findings (after auto-validation) number 2 or fewer, validate them inline without spawning subagents — perform the checks described in 3b directly and proceed to 3c. This avoids subagent overhead for small reviews.
+
+### 3b. Spawn Validation Agents
+
+Launch validation agents IN PARALLEL (single message, multiple Agent tool calls), one per batch. Do NOT use `run_in_background` — all validators must run in foreground so their results are available for the filtering step.
+
+Each validation agent receives:
+- **Findings**: The list of findings in its batch (ID, severity, category, file:line, problem description, suggested fix, evidence).
+- **Full file contents**: For each target file in the batch, the complete file from the worktree (not just the diff). Read these before spawning.
+- **Diff hunks**: The PR diff hunks for each target file (from Subagent 1's data) so the validator understands what is new vs. pre-existing.
+- **PR context**: The PR description and summary assessment from Post-Subagent Synthesis.
+- **Style guide contents**: If any findings in the batch cite a style guide rule, include the relevant style guide text from Phase 0 step 6.
+- **Worktree path**: So the validator can read additional files if it needs to trace call chains, check for upstream guards, or locate existing tests.
+
+Each validation agent performs these checks for every finding in its batch:
+
+1. **Code existence**: Read the file at the specified path and line in the worktree. Confirm the code at that location matches the finding's "Current code" snippet. If the code does not match (finding references wrong line or stale code), verdict is **INVALID** with HIGH confidence.
+2. **Contextual validation** (match on the finding's **severity**):
+   - **BUG**: Read at least 50 lines above and below the flagged line. Check whether the alleged bug condition can actually occur: look for upstream null checks, type guards, validation, assertions, or control flow that prevents the condition. If the bug is prevented by existing code, verdict is INVALID. If the bug exists but the impact is lower than stated, verdict is DOWNGRADE. For error-handling findings (category 3 from analysis): verify the error path exists and is actually reachable; check if the framework or caller already handles the error case.
+   - **SECURITY**: Verify the vulnerability is exploitable in the actual runtime context. Check for framework-level protections (ORM parameterization, CSRF middleware, input sanitization layers, auth decorators) that may neutralize the risk. If fully mitigated, verdict is INVALID.
+   - **RETHINK**: Verify the architectural concern is grounded by reading the actual dependency graph and module structure. If the concern is speculative or the coupling is intentional and documented, verdict is INVALID.
+   - **HYGIENE**: If a style guide rule is cited, verify the rule text actually prohibits the pattern in question. Also check if 3 or more other files in the codebase use the same pattern — if so, the pattern is established convention regardless of the style guide, and the verdict is INVALID or DOWNGRADE to NITPICK.
+   - **MISSING_TEST**: Search the worktree's test directories for the function/class/method name. Check test files that were not in the diff. If adequate test coverage exists elsewhere, verdict is INVALID.
+   - **NITPICK**: Check if the rest of the codebase follows the same convention as the PR code. If the PR is consistent with existing code, verdict is INVALID.
+3. **Assign verdict**: For each finding, return:
+   - **Finding ID** (the pre-validation REVIEW-NNN)
+   - **Verdict**: VALID, INVALID, or DOWNGRADE
+   - **Confidence**: HIGH (certain) or MEDIUM (probable but not definitive)
+   - **New severity** (only for DOWNGRADE verdicts)
+   - **Reason**: 1-2 sentence explanation grounded in specific code evidence (e.g., "Null check exists at line 38 of the same function, so the value cannot be None at line 45")
+
+**Return**: The list of verdicts for all findings in the batch.
+
+### 3c. Apply Validation Results
+
+After all validation agents complete:
+
+1. **Process verdicts**:
+   - **VALID**: Finding passes through unchanged.
+   - **INVALID + HIGH confidence**: Remove the finding from the list.
+   - **INVALID + MEDIUM confidence**: Do not remove. Instead, DOWNGRADE the finding by one severity level (BUG→RETHINK, SECURITY→RETHINK, RETHINK→HYGIENE, HYGIENE→NITPICK, MISSING_TEST→NITPICK). For NITPICK findings (already the lowest judgment severity), treat INVALID + MEDIUM as INVALID + HIGH and remove the finding. Append the validator's reason to the finding's evidence field, prefixed with "Validation note: ".
+   - **DOWNGRADE**: Update the finding's severity to the new severity specified by the validator. Append the validator's reason to the evidence field, prefixed with "Validation note: ".
+
+2. **Re-sort findings** by severity in the standard priority order: BUG > SECURITY > RETHINK > HYGIENE > MISSING_TEST > NITPICK (LINT, TEST_FAIL, CI findings that were auto-validated retain their position).
+
+3. **Re-number findings**: Assign fresh sequential REVIEW-NNN IDs (starting from REVIEW-001) to all surviving findings. The final report must have contiguous IDs with no gaps.
+
+4. **Compile validation summary**:
+   - Total findings before validation
+   - Auto-validated (LINT/TEST_FAIL/CI): count
+   - Validated by agents: count
+   - Removed (INVALID + HIGH): count
+   - Downgraded: count (includes both explicit DOWNGRADEs and INVALID + MEDIUM conversions)
+   - Surviving findings: count
+
+5. Proceed to Phase 4 with the filtered, re-sorted, re-numbered findings and the validation summary.
+
+## Phase 4: Review Report
 
 Present a structured report with persistent `REVIEW-NNN` IDs. These IDs persist in the conversation for `/suggest` to reference.
 
@@ -110,6 +176,11 @@ Present a structured report with persistent `REVIEW-NNN` IDs. These IDs persist 
 
 ### Summary
 Brief overall assessment of the PR: what it does, overall quality, and key concerns.
+
+### Validation Summary
+**Findings before validation**: <total> | **Auto-validated**: <count> (LINT/TEST_FAIL/CI)
+**Agent-validated**: <count> | **Removed as false positives**: <count> | **Downgraded**: <count>
+**Final findings**: <count>
 
 ### PR Size Assessment
 **Total change**: +<additions> / -<deletions> (<total> lines changed across <file_count> files)
@@ -193,7 +264,7 @@ Every issue MUST include:
 - **Suggested fix** — concrete replacement code when applicable. For RETHINK issues, this can be a description of the alternative approach instead.
 - These are critical for `/suggest` to work — without precise file:line references and fix code, suggestions cannot be posted.
 
-## Phase 4: Worktree Cleanup
+## Phase 5: Worktree Cleanup
 
 1. `cd` back to the original working directory (saved in Phase 1).
 2. Remove the worktree: `git worktree remove .review-pr-<PR_NUMBER> --force`
@@ -227,7 +298,7 @@ Follow all "Shared Constraints" from `~/.claude/shared/pr-commands.md`, plus the
 
 - **PR targets multiple areas**: Detect all affected areas. Run lint/tests for each. Group findings by area.
 - **PR is a draft**: Allow review but note draft status in the report header.
-- **Large PR (>50 files or >2000 lines)**: Warn the user before starting the review. Prioritize changed files by risk (business logic > validation > tests > config > docs). Offer to review in batches. The PR Size Assessment (see Post-Subagent Synthesis step 4 and the Phase 3 report section) will provide detailed split recommendations.
+- **Large PR (>50 files or >2000 lines)**: Warn the user before starting the review. Prioritize changed files by risk (business logic > validation > tests > config > docs). Offer to review in batches. The PR Size Assessment (see Post-Subagent Synthesis step 4 and the Phase 4 report section) will provide detailed split recommendations.
 - **Dependencies fail to install**: Skip lint/test but continue with code analysis. Note in report that dynamic validation was not possible.
 - **Worktree creation fails**: Fall back to analyzing the diff from the API without local checkout. Note that lint/tests/exploratory tests could not run.
 - **Binary files in diff**: Skip them, note in report.

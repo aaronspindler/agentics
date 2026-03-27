@@ -9,8 +9,8 @@ Arguments: `$ARGUMENTS` — optional. Can be empty (uses current branch's PR), a
 1. **Branch**: `git branch --show-current`.
 2. **Branch guard**: If on `main` or `master`, STOP with an error: "You are on the main/master branch. Switch to a feature branch before running refine."
 3. **PR lookup**: Follow the "Argument Parsing" section of `~/.claude/shared/pr-commands.md` to parse `$ARGUMENTS`. Arguments are **optional** — if empty, run `gh pr list --head <branch> --repo <owner/repo> --json number,url --limit 1` to find the current branch's PR. If no PR found, note "no PR" and continue (one will be created at Phase 4).
-5. **Sub-project CLAUDE.md**: Follow the "Sub-project CLAUDE.md Lookup" section of `~/.claude/shared/pr-commands.md`, targeting the current working directory.
-6. **Project type detection**: Follow the "Project Type Detection Matrix" in `~/.claude/shared/pr-commands.md`. Check the working directory for marker files. First match wins. Ignore the `Install` column (dependencies are already present in the working environment). If nothing detected, report "Could not detect project type" and skip that step.
+4. **Sub-project CLAUDE.md**: Follow the "Sub-project CLAUDE.md Lookup" section of `~/.claude/shared/pr-commands.md`, targeting the current working directory.
+5. **Project type detection**: Follow the "Project Type Detection Matrix" in `~/.claude/shared/pr-commands.md`. Check the working directory for marker files. First match wins. Ignore the `Install` column (dependencies are already present in the working environment). If nothing detected, report "Could not detect project type" and skip that step.
 
 Report the detected context (repo, branch, PR status, project type, lint command, test command) before proceeding.
 
