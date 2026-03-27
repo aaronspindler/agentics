@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "precommit-agentic-check"
+version = "0.1.0"
+description = "LLM-powered pre-commit check for staged changes."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["pre-commit", "llm", "git", "hook"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.scripts]
+agentic-check = "agentic_check.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/aaronspindler/agentics"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
