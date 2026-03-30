@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-Central repository for reusable AI agent configuration, rules, and workflows. Standardizes how AI assistants and automation behave across projects. No application code — only workflow definitions, agent rules, and configuration.
+Central repository for reusable AI agent configuration, rules, workflows, and orchestration tooling. Standardizes how AI assistants and automation behave across projects.
 
 ## Key Commands
 
@@ -46,6 +46,7 @@ Scope note: the parity rule applies only to workflow source `.md` files (`workfl
 - `.github/workflows/*.yml` — Non-workflow GitHub Actions (maintenance, copilot setup)
 - `.github/agents/` — GitHub Copilot agent definitions
 - `.github/aw/` — `gh aw` action lock metadata
+- `agentic-harness/` — Multi-agent orchestration harness (Planner → Generator ↔ Evaluator)
 - `.ai/plans/` — Planning documents for proposed changes
 - `.vscode/` — VS Code settings and MCP server config for `gh aw mcp-server`
 

@@ -15,6 +15,7 @@ A central repository for reusable configuration, rules, and workflows for AI-pow
 - `workflows/` — Reusable agentic workflow definitions (for `gh aw`)
 - `.github/workflows/` — This repository's own installed/compiled workflows and maintenance jobs
 - `precommit-agentic-check/` — Isolated Python subproject for an LLM-backed pre-commit hook
+- `agentic-harness/` — Multi-agent orchestration harness for long-running development tasks
 
 ## Subprojects
 
@@ -24,6 +25,33 @@ A central repository for reusable configuration, rules, and workflows for AI-pow
 - Runtime: Python package (`agentic-check` CLI).
 - Config surface: model/provider/prompt in `.pre-commit-config.yaml`, credentials via env vars.
 - Docs: `precommit-agentic-check/README.md`
+
+### agentic-harness
+
+- Purpose: Orchestrate multi-agent workflows (Planner → Generator ↔ Evaluator) for long-running development tasks across the monorepo.
+- Runtime: Python package (`agentic-harness` CLI), zero dependencies.
+- Design: Based on [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps) — context resets (not compaction), generator/evaluator separation, file-based handoffs.
+- Key features:
+  - **Three-agent system**: Planner (spec + sprint contract), Generator (code + tests), Evaluator (read-only grading)
+  - **Context resets**: Each agent call is a fresh API call; state passes via JSON workspace files
+  - **Project-aware**: Auto-detects project type (Poetry, pnpm, Pants, Terraform) and loads `.ai/` docs per agent role
+  - **Resumable**: Workspace artifacts allow resuming from any phase
+- Config surface: `.harness.yaml` per project, credentials via env vars (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
+- Docs: `agentic-harness/README.md`
+
+```bash
+# Install
+pip install -e ./agentic-harness
+
+# Full workflow
+agentic-harness run --brief-text "Add TIN filtering" --project ../provider-payments/
+
+# Plan only
+agentic-harness plan --brief path/to/brief.md --project ../provider-payments/
+
+# Dry run (no API calls)
+agentic-harness run --dry-run --brief-text "Add health check" --project ../provider-payments/
+```
 
 ## Getting Started with gh aw
 
