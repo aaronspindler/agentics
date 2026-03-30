@@ -1,6 +1,17 @@
 # Agentic Harness
 
-Multi-agent orchestration harness for long-running development tasks. Based on the patterns described in [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps).
+Multi-agent orchestration harness for long-running development tasks.
+
+## Background
+
+This tool is based on patterns from Anthropic's [Harness Design for Long-Running Application Development](https://www.anthropic.com/engineering/harness-design-long-running-apps). The article found that:
+
+- **Self-evaluation is unreliable** — when asked to evaluate their own work, models tend to praise it even when quality is mediocre. Separating the evaluator from the generator is far more effective.
+- **Context resets outperform context compaction** — clearing context and restarting with structured handoffs produces better results than summarizing in-place, which causes coherence loss and "context anxiety" (premature wrap-up near perceived limits).
+- **Sprint contracts** — having the evaluator and generator agree on a definition of done before code is written creates measurable quality criteria.
+- **Every harness component encodes an assumption about what the model can't do on its own** — scaffolding should be stripped as models improve, and new components added to reach previously impossible capabilities.
+
+These insights are implemented here as a three-agent system (Planner, Generator, Evaluator) with file-based handoffs between independent API calls.
 
 ## Architecture
 
