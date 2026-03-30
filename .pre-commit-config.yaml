@@ -1,8 +1,1 @@
-repos:
-  - repo: local
-    hooks:
-      - id: workflow-source-parity
-        name: Workflow source parity
-        entry: scripts/check-workflow-source-parity.sh
-        language: system
-        pass_filenames: false
+repos: []

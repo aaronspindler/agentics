@@ -9,13 +9,14 @@ A central repository for reusable configuration, rules, and workflows for AI-pow
 - **Cursor Rules** — `.cursorrules` and settings for Cursor IDE
 - **GitHub Agentic Workflows** — Reusable `gh aw` workflow definitions
 - **GitHub Actions Workflows** — CI/CD workflows that leverage AI agents
+- **Claude Commands** — Custom slash commands for Claude Code (`/review`, `/refine`, `/suggest`, `/design`)
 
 ## Repository Layout
 
-- `workflows/` — Reusable agentic workflow definitions (for `gh aw`)
-- `.github/workflows/` — This repository's own installed/compiled workflows and maintenance jobs
+- `.github/workflows/` — Agentic workflow definitions, compiled lock files, and maintenance jobs
 - `precommit-agentic-check/` — Isolated Python subproject for an LLM-backed pre-commit hook
 - `agentic-harness/` — Multi-agent orchestration harness for long-running development tasks
+- `claude-commands/` — Claude Code custom slash commands and shared reference files
 
 ## Subprojects
 
@@ -53,6 +54,62 @@ agentic-harness plan --brief path/to/brief.md --project ../provider-payments/
 agentic-harness run --dry-run --brief-text "Add health check" --project ../provider-payments/
 ```
 
+### claude-commands
+
+Custom slash commands for Claude Code that automate code review, refinement, design, and suggestion workflows.
+
+#### Available Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/review <PR>` | Checkout a PR into a worktree, run lint/tests, perform deep code analysis, and produce a findings report. Never commits or pushes. |
+| `/refine` | Discover issues on the current branch, fix them, commit, update or create a PR, and monitor CI. |
+| `/suggest <issues>` | Post specific findings from a `/review` report as inline PR comments. |
+| `/design <brief>` | Explore the codebase, produce a 1-pager design doc, then break it into implementation tickets. |
+
+#### Structure
+
+```
+claude-commands/
+├── commands/           # Slash commands (deployed to ~/.claude/commands/)
+│   ├── review.md
+│   ├── refine.md
+│   ├── suggest.md
+│   └── design.md
+└── shared/             # Shared reference files (deployed to ~/.claude/shared/)
+    ├── pr-commands.md
+    └── design-templates.md
+```
+
+#### Installation
+
+```bash
+cd claude-commands
+make deploy
+```
+
+This copies commands to `~/.claude/commands/` and shared files to `~/.claude/shared/`, where Claude Code picks them up at runtime.
+
+#### Usage
+
+After deploying, the commands are available as slash commands inside any Claude Code session:
+
+```
+/review 42              # Review PR #42
+/refine                 # Fix issues on the current branch and update the PR
+/suggest 1,3            # Post findings #1 and #3 from a review as PR comments
+/design "Add patient export API"   # Generate a design doc and tickets
+```
+
+#### Managing Commands
+
+| Make target | What it does |
+|-------------|-------------|
+| `make deploy` | Copy all commands and shared files to `~/.claude/` |
+| `make diff` | Show differences between repo files and deployed files |
+| `make status` | Check whether deployed files are in sync with the repo |
+
+**Important**: This repo is the source of truth. Never edit files directly in `~/.claude/commands/` or `~/.claude/shared/` — edit here, then `make deploy`.
 ## Getting Started with gh aw
 
 1. Install and authenticate GitHub CLI (`gh`).
@@ -84,7 +141,7 @@ gh aw init
 
 ### Agents Doc Sync
 
-- Source file: `workflows/agents-doc-sync.md`
+- Source file: `.github/workflows/agents-doc-sync.md`
 - Mission: Detect divergence between `CLAUDE.md` and `AGENTS.md`, update the file missing information, and create a PR only when edits are made.
 - Triggers:
   - `schedule` (daily)
