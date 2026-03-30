@@ -1,161 +1,153 @@
 # Agentics
 
-A central repository for reusable configuration, rules, and workflows for AI-powered tools and agents. Everything needed to standardize how AI assistants and automation behave across projects lives here.
-
-## What's Included
-
-- **Claude Rules** — `CLAUDE.md` files and conventions for Claude Code / Claude CLI
-- **Codex Rules** — Configuration and instructions for OpenAI Codex agents
-- **Cursor Rules** — `.cursorrules` and settings for Cursor IDE
-- **GitHub Agentic Workflows** — Reusable `gh aw` workflow definitions
-- **GitHub Actions Workflows** — CI/CD workflows that leverage AI agents
-- **Claude Commands** — Custom slash commands for Claude Code (`/review`, `/refine`, `/suggest`, `/design`)
-
-## Repository Layout
-
-- `.github/workflows/` — Agentic workflow definitions, compiled lock files, and maintenance jobs
-- `precommit-agentic-check/` — Isolated Python subproject for an LLM-backed pre-commit hook
-- `agentic-harness/` — Multi-agent orchestration harness for long-running development tasks
-- `claude-commands/` — Claude Code custom slash commands and shared reference files
+> CLI tools, slash commands, and workflows that put AI agents to work across the development lifecycle — from code review to long-running feature implementation.
 
 ## Subprojects
 
-### precommit-agentic-check
-
-- Purpose: Run an agentic check in pre-commit using staged diff + nearby context.
-- Runtime: Python package (`agentic-check` CLI).
-- Config surface: model/provider/prompt in `.pre-commit-config.yaml`, credentials via env vars.
-- Docs: `precommit-agentic-check/README.md`
-
-### agentic-harness
-
-- Purpose: Orchestrate multi-agent workflows (Planner → Generator ↔ Evaluator) for long-running development tasks across the monorepo.
-- Runtime: Python package (`agentic-harness` CLI), zero dependencies.
-- Design: Based on [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps) — context resets (not compaction), generator/evaluator separation, file-based handoffs.
-- Key features:
-  - **Three-agent system**: Planner (spec + sprint contract), Generator (code + tests), Evaluator (read-only grading)
-  - **Context resets**: Each agent call is a fresh API call; state passes via JSON workspace files
-  - **Project-aware**: Auto-detects project type (Poetry, pnpm, Pants, Terraform) and loads `.ai/` docs per agent role
-  - **Resumable**: Workspace artifacts allow resuming from any phase
-- Config surface: `.harness.yaml` per project, credentials via env vars (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
-- Docs: `agentic-harness/README.md`
-
-```bash
-# Install
-pip install -e ./agentic-harness
-
-# Full workflow
-agentic-harness run --brief-text "Add TIN filtering" --project ../provider-payments/
-
-# Plan only
-agentic-harness plan --brief path/to/brief.md --project ../provider-payments/
-
-# Dry run (no API calls)
-agentic-harness run --dry-run --brief-text "Add health check" --project ../provider-payments/
-```
-
 ### claude-commands
 
-Custom slash commands for Claude Code that automate code review, refinement, design, and suggestion workflows.
+> Custom slash commands for Claude Code that automate code review, refinement, design, and PR feedback.
 
-#### Available Commands
+Four commands that handle multi-phase workflows end-to-end:
 
-| Command | Purpose |
-|---------|---------|
-| `/review <PR>` | Checkout a PR into a worktree, run lint/tests, perform deep code analysis, and produce a findings report. Never commits or pushes. |
-| `/refine` | Discover issues on the current branch, fix them, commit, update or create a PR, and monitor CI. |
-| `/suggest <issues>` | Post specific findings from a `/review` report as inline PR comments. |
-| `/design <brief>` | Explore the codebase, produce a 1-pager design doc, then break it into implementation tickets. |
+| Command | What it does |
+|---------|-------------|
+| `/review <PR>` | Checks out a PR into an isolated worktree, runs lint/tests, performs deep code analysis across 9 severity levels, validates findings against actual code, and produces a numbered findings report. Never commits or pushes. |
+| `/refine` | Discovers issues on the current branch (lint, tests, CI failures, PR comments), fixes them in up to 3 rounds, commits, pushes, creates/updates the PR, and watches CI. |
+| `/suggest <issues>` | Posts specific findings from a `/review` report as inline PR comments with `suggestion` blocks. Detects stale reviews and deduplicates against existing comments. |
+| `/design <brief>` | Explores the codebase, produces a 1-pager design doc with alternatives and comparison matrix, then breaks the solution into sequenced implementation tickets. |
 
-#### Structure
+Commands share common config via `shared/pr-commands.md` (argument parsing, project type detection, PR comment fetching) and `shared/design-templates.md` (document structure).
 
-```
-claude-commands/
-├── commands/           # Slash commands (deployed to ~/.claude/commands/)
-│   ├── review.md
-│   ├── refine.md
-│   ├── suggest.md
-│   └── design.md
-└── shared/             # Shared reference files (deployed to ~/.claude/shared/)
-    ├── pr-commands.md
-    └── design-templates.md
-```
-
-#### Installation
+**Install & usage:**
 
 ```bash
-cd claude-commands
-make deploy
+cd claude-commands && make deploy   # copies to ~/.claude/commands/ and ~/.claude/shared/
+
+# Then in any Claude Code session:
+/review 42
+/refine
+/suggest 1,3
+/design "Add patient export API"
 ```
-
-This copies commands to `~/.claude/commands/` and shared files to `~/.claude/shared/`, where Claude Code picks them up at runtime.
-
-#### Usage
-
-After deploying, the commands are available as slash commands inside any Claude Code session:
-
-```
-/review 42              # Review PR #42
-/refine                 # Fix issues on the current branch and update the PR
-/suggest 1,3            # Post findings #1 and #3 from a review as PR comments
-/design "Add patient export API"   # Generate a design doc and tickets
-```
-
-#### Managing Commands
 
 | Make target | What it does |
 |-------------|-------------|
-| `make deploy` | Copy all commands and shared files to `~/.claude/` |
-| `make diff` | Show differences between repo files and deployed files |
-| `make status` | Check whether deployed files are in sync with the repo |
+| `make deploy` | Copy commands and shared files to `~/.claude/` |
+| `make diff` | Show differences between repo and deployed files |
+| `make status` | Check whether deployed files are in sync |
 
-**Important**: This repo is the source of truth. Never edit files directly in `~/.claude/commands/` or `~/.claude/shared/` — edit here, then `make deploy`.
-## Getting Started with gh aw
+This repo is the source of truth — never edit files directly in `~/.claude/`.
 
-1. Install and authenticate GitHub CLI (`gh`).
-2. Install the `gh aw` extension:
+---
 
-```bash
-gh extension install github/gh-aw
+### precommit-agentic-check
+
+> LLM-powered pre-commit gate that reviews staged git changes against a policy prompt and returns a structured pass/fail verdict.
+
+Reads your staged diff with surrounding context, sends it to an LLM with a policy prompt, and enforces a JSON response contract (pass/fail, findings with severity/file/line, optional suggested patch). Zero runtime dependencies — uses stdlib HTTP only.
+
+**Install & usage:**
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: agentic-check
+        name: Agentic Check
+        entry: agentic-check
+        language: python
+        pass_filenames: false
+        additional_dependencies:
+          - precommit-agentic-check==0.1.0
+        args:
+          - --provider=anthropic       # or openai
+          - --model=claude-sonnet-4-20250514
+          - --prompt-file=.ai/prompts/precommit_gate.md
+          - --strict=error             # or warn (continue on LLM failure)
 ```
 
-If already installed, upgrade to the latest version:
+Requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in the environment. Customize the policy prompt to match your project's standards.
 
-```bash
-gh extension upgrade gh-aw
+Docs: [`precommit-agentic-check/README.md`](precommit-agentic-check/README.md)
+
+---
+
+### agentic-harness
+
+> Multi-agent orchestration harness for long-running development tasks, based on Anthropic's [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps).
+
+Orchestrates three independent agents — **Planner** (expands a brief into a spec + sprint contract), **Generator** (writes code, runs tests), and **Evaluator** (read-only grading against the contract) — with context resets between each call and file-based handoffs. The evaluator cannot write files, preventing self-evaluation bias. Zero runtime dependencies.
+
+```
+Brief → Planner → spec.json → Generator ↔ Evaluator (up to N iterations) → result
 ```
 
-3. Initialize your target repository for agentic workflows:
+**Install & usage:**
 
 ```bash
-gh aw init
+pip install -e ./agentic-harness
+export ANTHROPIC_API_KEY=sk-ant-...
+
+agentic-harness run --brief-text "Add TIN filtering" --project ../provider-payments/
+agentic-harness plan --brief path/to/brief.md --project ../provider-payments/
+agentic-harness run --dry-run --brief-text "Add health check" --project ../provider-payments/
 ```
 
-## Available Workflows
+Auto-detects project type (Poetry, pnpm, Pants, Terraform) and loads `.ai/` docs per agent role. Workspaces are resumable — see [`agentic-harness/README.md`](agentic-harness/README.md) for configuration and workspace details.
 
-| Workflow                            | Summary                                                                                       | Install                                                            |
-| ----------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| [Agents Doc Sync](#agents-doc-sync) | Keeps `CLAUDE.md` and `AGENTS.md` aligned and opens a PR only when sync changes are required. | `gh aw add-wizard aaronspindler/agentic_workflows/agents-doc-sync` |
+---
 
-## Workflow Details
+## GitHub Agentic Workflows
+
+AI-powered workflows authored as markdown with YAML frontmatter, compiled to GitHub Actions via [`gh aw`](https://github.com/github/gh-aw).
+
+**Getting started:**
+
+```bash
+gh extension install github/gh-aw   # or: gh extension upgrade gh-aw
+gh aw init                           # initialize a repo for agentic workflows
+gh aw compile                        # compile .md sources into .lock.yml
+```
+
+**Available workflows:**
+
+| Workflow | Summary | Install |
+|----------|---------|---------|
+| [Agents Doc Sync](#agents-doc-sync) | Keeps `CLAUDE.md` and `AGENTS.md` aligned; opens a PR only when sync changes are needed. | `gh aw add-wizard aaronspindler/agentic_workflows/agents-doc-sync` |
 
 ### Agents Doc Sync
 
-- Source file: `.github/workflows/agents-doc-sync.md`
-- Mission: Detect divergence between `CLAUDE.md` and `AGENTS.md`, update the file missing information, and create a PR only when edits are made.
-- Triggers:
-  - `schedule` (daily)
-  - `workflow_dispatch` (manual)
-- Permissions: `contents: read`, `issues: read`, `pull-requests: read`
-- Engine / timeout: `codex`, `15` minutes
-- Tools: `edit`, `bash`, `github` (default toolset)
-- Required configuration:
-  - Required: none
-  - Optional repository variables: `GH_AW_MODEL_AGENT_CODEX`, `GH_AW_MODEL_DETECTION_CODEX`
-- Safe output behavior: PR titles are prefixed with `[docs]` , labels include `documentation` and `automation`, and PR expiry is `3d`.
+Detects divergence between `CLAUDE.md` and `AGENTS.md`, updates the file missing information, and creates a PR only when edits are made.
 
-Install:
+- **Source**: `.github/workflows/agents-doc-sync.md`
+- **Triggers**: daily schedule + manual (`workflow_dispatch`)
+- **Engine**: Codex (15-minute timeout)
+- **Safe outputs**: PRs prefixed with `[docs]`, labeled `documentation` + `automation`, auto-expire after 3 days
 
-```bash
-gh aw add-wizard aaronspindler/agentic_workflows/agents-doc-sync
+---
+
+## Repository Layout
+
+```
+agentics/
+├── claude-commands/             # Claude Code slash commands (source of truth)
+│   ├── commands/                #   /review, /refine, /suggest, /design
+│   ├── shared/                  #   Shared config and templates
+│   └── Makefile                 #   deploy, diff, status
+├── precommit-agentic-check/     # LLM-backed pre-commit gate (Python package)
+│   ├── src/agentic_check/       #   CLI, providers, schema, git input
+│   ├── tests/
+│   └── .ai/prompts/             #   Policy prompt template
+├── agentic-harness/             # Multi-agent orchestration harness (Python package)
+│   ├── src/agentic_harness/     #   CLI, agents, providers, tools, orchestrator
+│   ├── tests/
+│   └── .ai/prompts/             #   Planner, generator, evaluator prompts
+├── .github/
+│   ├── workflows/               #   Agentic workflow sources (.md) + compiled (.lock.yml)
+│   └── agents/                  #   GitHub Copilot agent dispatcher
+├── CLAUDE.md                    # Guidance for Claude Code in this repo
+├── AGENTS.md                    # Guidance for agentic coding assistants
+└── LICENSE                      # MIT
 ```
