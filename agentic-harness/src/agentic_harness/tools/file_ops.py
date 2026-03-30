@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -83,25 +82,34 @@ def list_directory(
 
 
 def _resolve_path(path: str, project_root: str) -> Path:
-    """Resolve a path relative to the project root."""
+    """Resolve a path relative to the project root.
+
+    Raises ValueError if the resolved path escapes the project root.
+    """
+    root = Path(project_root).resolve()
     p = Path(path)
     if p.is_absolute():
-        return p
-    return Path(project_root) / p
+        resolved = p.resolve()
+    else:
+        resolved = (root / p).resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"path escapes project root: {path}")
+    return resolved
 
 
-PROTECTED_PATTERNS = {".env", ".pem", ".key", "credentials"}
+PROTECTED_SUFFIXES = {".env", ".pem", ".key"}
+PROTECTED_SUBSTRINGS = {"credentials", "secret"}
 
 
 def _is_protected(path: Path) -> bool:
     """Check if a file matches protected patterns."""
     name = path.name.lower()
     suffix = path.suffix.lower()
-    if suffix in {".pem", ".key"}:
+    if suffix in PROTECTED_SUFFIXES:
         return True
     if name == ".env" or name.startswith(".env."):
         return True
-    if "credentials" in name or "secret" in name:
+    if any(sub in name for sub in PROTECTED_SUBSTRINGS):
         return True
     return False
 

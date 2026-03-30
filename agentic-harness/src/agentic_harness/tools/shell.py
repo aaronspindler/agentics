@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 from typing import Any
 
@@ -19,8 +20,17 @@ def run_command(
     If ``allowed_prefixes`` is set, the command must start with one of
     the listed prefixes (used to restrict the evaluator to test/lint only).
     """
+    try:
+        tokens = shlex.split(command)
+    except ValueError as exc:
+        return {"error": f"invalid command syntax: {exc}", "returncode": -1}
+
+    if not tokens:
+        return {"error": "empty command", "returncode": -1}
+
     if allowed_prefixes:
-        if not any(command.strip().startswith(p) for p in allowed_prefixes):
+        base = tokens[0].rsplit("/", 1)[-1]
+        if not any(base == p for p in allowed_prefixes):
             return {
                 "error": f"command not allowed. Must start with one of: {allowed_prefixes}",
                 "returncode": -1,
@@ -28,8 +38,8 @@ def run_command(
 
     try:
         result = subprocess.run(
-            command,
-            shell=True,
+            tokens,
+            shell=False,
             cwd=cwd,
             capture_output=True,
             text=True,

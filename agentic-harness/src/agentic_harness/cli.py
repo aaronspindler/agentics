@@ -24,6 +24,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
+    subparsers.required = True
 
     # --- run ---
     run_parser = subparsers.add_parser(
@@ -194,7 +195,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         project_path=project_path,
     )
 
-    result = orchestrator.run(brief)
+    result = orchestrator.run(brief, skip_evaluate=args.no_evaluate)
     _print_result(result)
     return 0 if result.status == "complete" else 1
 
@@ -335,10 +336,6 @@ def run(argv: list[str] | None = None) -> int:
             level=logging.INFO,
             format="%(asctime)s %(name)s %(levelname)s %(message)s",
         )
-
-    if not args.command:
-        parse_args(["--help"])
-        return 1
 
     handler = COMMANDS.get(args.command)
     if not handler:

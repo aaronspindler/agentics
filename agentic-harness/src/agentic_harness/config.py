@@ -70,6 +70,7 @@ def _try_parse_yaml(text: str) -> dict[str, Any]:
     result: dict[str, Any] = {}
     current_section: dict[str, Any] | None = None
     current_key: str | None = None
+    last_nested_key: str | None = None
 
     for line in text.splitlines():
         stripped = line.strip()
@@ -90,6 +91,7 @@ def _try_parse_yaml(text: str) -> dict[str, Any]:
                 result[key] = {}
                 current_section = result[key]
                 current_key = key
+            last_nested_key = None
         elif indent > 0 and current_section is not None and ":" in stripped:
             key, _, value = stripped.partition(":")
             key = key.strip()
@@ -100,12 +102,18 @@ def _try_parse_yaml(text: str) -> dict[str, Any]:
                 current_section[key] = [i for i in items if i]
             else:
                 current_section[key] = _coerce_value(value)
-        elif indent > 0 and stripped.startswith("- "):
-            # List item under current section
+            last_nested_key = key
+        elif indent > 0 and stripped.startswith("- ") and current_section is not None:
             item = stripped[2:].strip().strip('"').strip("'")
-            if current_key and isinstance(result.get(current_key), dict):
-                # Find the last key added to current_section that is a list
-                pass  # Skip complex list handling in fallback
+            if last_nested_key is not None:
+                existing = current_section.get(last_nested_key)
+                if not isinstance(existing, list):
+                    current_section[last_nested_key] = [] if existing is None else [existing]
+                current_section[last_nested_key].append(_coerce_value(item))
+            elif current_key is not None:
+                if not isinstance(result[current_key], list):
+                    result[current_key] = []
+                result[current_key].append(_coerce_value(item))
 
     return result
 

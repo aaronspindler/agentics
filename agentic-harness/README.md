@@ -28,7 +28,7 @@ Task Brief → Planner → spec.json → Generator ↔ Evaluator → result
 ## Install
 
 ```bash
-pip install -e ./agentics/agentic-harness
+pip install -e ./agentic-harness
 ```
 
 ## Usage

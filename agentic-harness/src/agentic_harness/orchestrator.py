@@ -56,7 +56,7 @@ class HarnessOrchestrator:
             ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
             self.workspace = Path(project_path) / config.workspace_dir / f"run-{ts}"
 
-    def run(self, brief: str) -> HarnessResult:
+    def run(self, brief: str, skip_evaluate: bool = False) -> HarnessResult:
         """Execute the full planner → generator ↔ evaluator workflow."""
         self.workspace.mkdir(parents=True, exist_ok=True)
         write_brief(self.workspace, brief)
@@ -118,6 +118,21 @@ class HarnessOrchestrator:
                 self.workspace, iteration, "changes.json", {"summary": summary}
             )
             self._log(f"iteration={iteration} generator completed")
+
+            if skip_evaluate:
+                write_handoff(self.workspace, "result.json", {
+                    "status": "complete",
+                    "iterations": iteration,
+                    "verdict": "skipped",
+                })
+                self._log("evaluation skipped (--no-evaluate)")
+                return HarnessResult(
+                    status="complete",
+                    iterations=iteration,
+                    workspace=str(self.workspace),
+                    spec=spec,
+                    evaluation={"verdict": "skipped"},
+                )
 
             # Evaluator (context reset: fresh call with spec + current code state)
             self._log(f"iteration={iteration} starting evaluator")
