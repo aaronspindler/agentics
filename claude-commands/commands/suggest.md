@@ -38,7 +38,7 @@ Arguments: `$ARGUMENTS` — required. Comma-separated issue numbers (e.g., `1,3,
 
 ### 1c. Check for Duplicates
 - `gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/comments --paginate` — fetch existing review comments.
-- For each selected issue, check if a comment containing `REVIEW-<NNN>` already exists. If so, mark as SKIPPED-DUPLICATE.
+- For each selected issue, check if a comment containing `<!-- review-<NNN> -->` already exists. If so, mark as SKIPPED-DUPLICATE.
 
 ### 1d. Build Comment Bodies
 
@@ -46,7 +46,8 @@ For each selected issue, construct the comment body:
 
 **Suggestable issues** (concrete code fix):
 ````markdown
-**REVIEW-<NNN>** [<SEVERITY>]: <title>
+<!-- review-<NNN> -->
+<title>
 
 <problem explanation>
 
@@ -57,7 +58,8 @@ For each selected issue, construct the comment body:
 
 **Comment-only issues** (no concrete replacement):
 ```markdown
-**REVIEW-<NNN>** [<SEVERITY>]: <title>
+<!-- review-<NNN> -->
+<title>
 
 <problem explanation>
 
