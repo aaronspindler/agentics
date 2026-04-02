@@ -58,7 +58,7 @@ jobs:
           python -m build precommit-agentic-check --outdir precommit-agentic-check/dist
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: precommit-agentic-check-dist
           path: precommit-agentic-check/dist/*
