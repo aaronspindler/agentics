@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-Central repository for reusable AI agent configuration, rules, and workflows. Standardizes how AI assistants and automation behave across projects. No application code — only workflow definitions, agent rules, and configuration.
+Central repository for reusable AI agent configuration, rules, workflows, and orchestration tooling. Standardizes how AI assistants and automation behave across projects.
 
 ## Key Commands
 
@@ -112,6 +112,7 @@ claude-commands/
 - `.github/agents/` — GitHub Copilot agent definitions (dispatcher for gh-aw prompts)
 - `.github/aw/` — `gh aw` action lock metadata (pinned SHAs)
 - `precommit-agentic-check/` — Python package for LLM-backed pre-commit gates
+- `agentic-harness/` — Multi-agent orchestration harness (Planner → Generator ↔ Evaluator)
 - `claude-commands/` — Claude Code custom commands (source of truth, deployed to `~/.claude/`)
 - `.vscode/` — VS Code settings and MCP server config for `gh aw mcp-server`
 
