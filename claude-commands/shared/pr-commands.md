@@ -112,3 +112,4 @@ These rules apply to all PR commands (`/review`, `/refine`, `/suggest`):
 - **No real data**: Never include real production data (secrets, credentials, PII, customer names, IDs, PHI) in any output, code, commits, or PR descriptions.
 - **Lint before tests**: Lint auto-fixers modify files, so always run lint first and tests second (not in parallel).
 - **Repo-structure awareness**: If the repo is a monorepo, always verify which sub-project is targeted. Use the detection matrix — do not assume tools.
+- **Human reviewer threads**: Never auto-resolve or auto-reply to human reviewer comment threads. Human threads must be resolved by the reviewer themselves — even when the underlying issue has been fixed. Never post a reply to a human comment without explicit per-reply user approval. Bot threads may be resolved silently after the underlying issue is fixed.

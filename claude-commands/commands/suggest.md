@@ -24,14 +24,11 @@ Arguments: `$ARGUMENTS` — required. Comma-separated issue numbers (e.g., `1,3,
 
 ## Phase 1: Prepare Suggestions
 
-### 1a. Stale Detection
-- Get current HEAD SHA: `gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json headRefOid --jq '.headRefOid'`
-- Compare with `HEAD_SHA` from the review report.
-- If they differ:
-  > ⚠️ PR has been updated since the review (review SHA: `<old>`, current SHA: `<new>`). Suggestions may be on incorrect lines. Continue anyway? (yes / re-review / stop)
-  - `re-review` → suggest the user run `/review` again.
-  - `stop` → abort.
-  - `yes` → continue with a warning.
+Run 1a, 1b, and 1c **in parallel** (single message, three independent API calls):
+
+### 1a. Current HEAD SHA
+- `gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json headRefOid --jq '.headRefOid'` → `CURRENT_SHA`.
+- If `CURRENT_SHA != HEAD_SHA`, record a stale warning to surface in the Phase 2 preview table (do not pause here).
 
 ### 1b. Fetch PR Files
 - `gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/files --paginate` — get file paths and patches to verify that target lines are within the diff.
@@ -88,11 +85,12 @@ For each issue:
 
 ## Phase 2: Preview & Approve
 
-Present all prepared suggestions in a table:
+Present all prepared suggestions in a table. If a stale SHA was detected in 1a, add a warning row at the top:
 
 ```
 | ID | File:Line | Type | Preview |
 |----|-----------|------|---------|
+| ⚠️ STALE SHA | — | Warning | PR updated since review (review: `<old>`, current: `<new>`). Line numbers may be off. |
 | REVIEW-001 | src/foo.py:42 | Code suggestion | `offset = (page - 1) * page_size` |
 | REVIEW-003 | src/bar.py:15 | Code suggestion | Rename `x` to `patient_count` |
 | REVIEW-004 | src/service.py:100-140 | Comment only | Extract to service layer |
@@ -100,7 +98,10 @@ Present all prepared suggestions in a table:
 | REVIEW-002 | src/api.py:88 | SKIPPED | Duplicate — already posted |
 ```
 
-**Pause**: Ask the user: "Post these suggestions to PR #<NUMBER>? (all / exclude specific numbers / stop)"
+**Pause**: Ask the user: "Post these suggestions to PR #<NUMBER>? (all / exclude specific numbers / stop / re-review)"
+- `re-review` → suggest running `/review` again and abort.
+
+
 
 Wait for explicit confirmation before proceeding.
 
@@ -167,7 +168,7 @@ Follow all "Shared Constraints" from `~/.claude/shared/pr-commands.md`, plus the
 
 - **Requires prior `/review`** in the same conversation. Will not work without it.
 - **NEVER modify local files**: All interaction is through the GitHub API.
-- **Stale detection**: Always check HEAD SHA before posting. Warn if the PR has been updated since the review.
+- **Stale detection**: Always check HEAD SHA before posting. If the PR was updated, surface a warning row in the Phase 2 preview table — do not interrupt before the preview.
 - **Idempotency**: Always check for existing comments with `REVIEW-NNN` IDs. Skip duplicates.
 - **Rate limiting**: Pause between API calls if posting many suggestions.
 - **User approval required**: Never post without explicit user confirmation at the Preview & Approve step.
@@ -177,7 +178,7 @@ Follow all "Shared Constraints" from `~/.claude/shared/pr-commands.md`, plus the
 ## Edge Cases
 
 - **No review in conversation**: Error with clear instructions to run `/review` first.
-- **PR updated since review (SHA mismatch)**: Warn user. Offer to continue, re-review, or stop.
+- **PR updated since review (SHA mismatch)**: Surface as a warning row in the Phase 2 preview table. The user can proceed knowing line numbers may be off, or choose `re-review` / `stop`.
 - **Line not in the diff**: Fall back to general PR comment. Note this in the results.
 - **Suggestion already posted**: Check for `REVIEW-NNN` in existing comments. Skip duplicates.
 - **Invalid issue numbers**: Report which IDs are invalid, continue with valid ones.

@@ -1,1 +1,9 @@
-repos: []
+repos:
+  - repo: local
+    hooks:
+      - id: no-ds-store
+        name: Block .DS_Store files
+        entry: bash scripts/check-no-ds-store.sh
+        language: system
+        pass_filenames: false
+        always_run: true

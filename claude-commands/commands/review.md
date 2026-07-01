@@ -8,10 +8,13 @@ Arguments: `$ARGUMENTS` — required. Accepts any of these formats:
 ## Phase 0: Context Detection
 
 > **Shared reference**: Read `~/.claude/shared/pr-commands.md` at the start. Use its sections as referenced below.
+> **Review rubrics**: Also read `~/.claude/shared/review-rubrics.md` at the start — pass its named sections to Subagent 3 as referenced below.
 
 1. **PR lookup**: Follow the "Argument Parsing" section of `~/.claude/shared/pr-commands.md` to parse `$ARGUMENTS`. Arguments are **required** — if empty or invalid, STOP with error: "Usage: `/review <PR_URL>` or `/review <PR_NUMBER>` or `/review owner/repo#NUMBER`"
 2. **Author note**: Report "Reviewing PR #<NUMBER> — '<TITLE>' by @<AUTHOR>".
 3. **Detect affected areas**: From the changed file paths (fetch via `gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/files --jq '.[].filename'`), determine which part(s) of the codebase are affected. Identify the primary area (most files changed).
+
+**Steps 4–6 in parallel** (all depend on step 3 but not on each other — run as a single batch):
 4. **Sub-project CLAUDE.md**: Follow the "Sub-project CLAUDE.md Lookup" section of `~/.claude/shared/pr-commands.md`, targeting the primary area's directory.
 5. **Project type detection**: Follow the "Project Type Detection Matrix" in `~/.claude/shared/pr-commands.md`. Check the primary area's directory for marker files. First match wins. Use the `Install` column for dependency installation in Phase 1. If nothing detected, report "Could not detect project type" and note that lint/test steps will be skipped.
 6. **Style guide discovery**: Search the repo for style guides, coding standards, or conventions docs (e.g., files named `styleguide*`, `style_guide*`, `coding-standards*`, or directories like `styleguides/`, `docs/`). Read any that are relevant to the detected project type. If none found, note that no project-specific style guide was found. Store the selected style guide path(s) and their contents for Subagent 3.
@@ -19,6 +22,8 @@ Arguments: `$ARGUMENTS` — required. Accepts any of these formats:
 Report the detected context (repo, branch, PR status, project type, lint command, test command, selected style guide(s)) before proceeding.
 
 ## Phase 1: Worktree Setup
+
+**Launch Subagent 1 (PR Data Collection) at the start of this phase**, before the git commands, using `run_in_background: true`. It is 100% GitHub API — it does not need the worktree — so it can run while the worktree is being set up. See the Subagent 1 spec in Phase 2 for its full task list. Pass it OWNER, REPO, PR_NUMBER, HEAD_SHA, and the PR Comment Fetching sections from `~/.claude/shared/pr-commands.md`. Do NOT await it here — collect the result in Phase 2 once Subagents 2 and 3 are also complete.
 
 1. **Save state**: Record the current working directory and branch (`git branch --show-current`).
 2. **Create worktree**: From the repository root, run:
@@ -34,7 +39,7 @@ Report the detected context (repo, branch, PR status, project type, lint command
 
 ## Phase 2: Discovery
 
-**Parallelization**: Launch 3 subagents IN PARALLEL (single message, multiple Agent tool calls) to maximize throughput. Each subagent works independently and returns its findings. Do NOT use `run_in_background` — all subagents must run in foreground so their results are available for the Post-Subagent Synthesis step.
+**Parallelization**: Subagent 1 was already launched in Phase 1 with `run_in_background: true` — it is running (or already complete). Now launch Subagents 2 and 3 IN PARALLEL (single message, two Agent tool calls, no `run_in_background`). Await Subagents 2 and 3 here; also collect Subagent 1's background result. All three results must be in hand before the Post-Subagent Synthesis step.
 
 ### Subagent 1: PR Data Collection (general-purpose agent)
 
@@ -59,7 +64,7 @@ Spawn a general-purpose agent with these instructions and context:
 ### Subagent 3: Deep Code Analysis (general-purpose agent)
 
 Spawn a general-purpose agent with these instructions and context:
-- **Provide**: The worktree path, the target directory, the list of changed files (from Phase 0's file list), the PR diff (fetch it again via `gh pr diff` if needed), the detected test command, PR_NUMBER, and the selected style guide path(s) and contents from Phase 0 step 6.
+- **Provide**: The worktree path, the target directory, the list of changed files (from Phase 0's file list), the PR diff (fetch it again via `gh pr diff` if needed), the detected test command, PR_NUMBER, and the selected style guide path(s) and contents from Phase 0 step 6. Also provide the "Security Audit Checklist", "Architecture Review Checklist", and "Exploratory Test Quality" sections from `~/.claude/shared/review-rubrics.md`.
 - **Tasks**:
   - **2f. Deep Code Analysis**: For each changed file (read the FULL file from the worktree, not just the diff hunks — understand the surrounding context), analyze for:
     1. **Bugs**: Logic errors, off-by-one, null/None handling, type mismatches, race conditions, incorrect boolean logic, wrong variable used.
@@ -72,6 +77,7 @@ Spawn a general-purpose agent with these instructions and context:
     8. **Naming and clarity**: Misleading names, unclear intent, magic numbers/strings, overly complex expressions.
     9. **Test coverage**: Are changed code paths covered by existing tests? Are there new code paths without tests? Are edge cases tested?
     10. **Consistency & Style Guide Adherence**: Does the code follow the patterns established in the rest of the codebase? If style guide(s) were discovered in Phase 0, check the changed code against each specific rule in those guides. For every violation found, create a finding with severity **HYGIENE**, citing the specific style guide rule violated and the guide it comes from. If no style guide was found, check only against codebase patterns.
+    - **Apply borrowed rubrics**: When analyzing categories 2 (Security), 7 (Architecture), and 9 (Test coverage) above, also apply the matching items from the "Security Audit Checklist" and "Architecture Review Checklist" sections of `~/.claude/shared/review-rubrics.md` (provided to this agent). These add detection specificity only — keep the existing severities (Security → **SECURITY**, Architecture → **RETHINK**, coverage gaps → **MISSING_TEST**) and the existing finding format.
   - **2g. Exploratory Test Writing**: For the most critical changed code paths (prioritize business logic, data transformations, and validation):
     1. Identify 2-5 of the most important functions/methods that were added or modified.
     2. Write temporary test files in the worktree (e.g., `test_review_validation_<PR_NUMBER>.py`):
@@ -82,6 +88,7 @@ Spawn a general-purpose agent with these instructions and context:
     3. Run the tests (using the detected test command or directly with pytest/jest for the specific files).
     4. Record results: passing tests confirm behavior; failing tests reveal bugs.
     5. Include the test code and results — these are evidence, not deliverables. If missing test coverage is identified, include the test code as a suggested addition.
+    6. **Test quality**: Follow the "Exploratory Test Quality" section of `~/.claude/shared/review-rubrics.md` — assert observable behavior (not implementation detail), avoid over-mocking so real code paths execute, and confirm any passing test would fail if the behavior under test were broken.
 - **Return**: All findings (file, line, category, description, suggested fix) and exploratory test code + results.
 
 ### Post-Subagent Synthesis

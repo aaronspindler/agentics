@@ -9,8 +9,12 @@ This repository is the canonical source of truth for Claude Code custom commands
   - `refine.md` -- Post-implementation refinement engine (`/refine`)
   - `suggest.md` -- PR suggestion posting engine (`/suggest`)
   - `design.md` -- Design document generator (`/design`)
+  - `daily.md` -- Daily GitHub-activity note synthesizer (`/daily`)
+  - `ticket.md` -- ClickUp ticket authoring engine (`/ticket`)
 - `shared/` -- Shared reference files used by commands (deployed to `~/.claude/shared/`)
   - `pr-commands.md` -- Shared reference for review/refine/suggest
+  - `review-rubrics.md` -- Security/architecture/test/debug rubrics for review and refine
+  - `checkpoint.md` -- Shared approval-gate protocol for daily and ticket
   - `design-templates.md` -- Templates for design command
 
 ## Editing Workflow
@@ -32,7 +36,8 @@ This repository is the canonical source of truth for Claude Code custom commands
 - **This repo is the source of truth.** Do not edit files directly in `~/.claude/commands/` or `~/.claude/shared/`. If you do, pull those changes back into this repo before they are lost.
 - **Always run `make deploy` after editing.** Changes in this repo do not take effect until deployed to `~/.claude/`.
 - **Path references in commands**: Commands reference shared files using `~/.claude/shared/...` paths. These resolve at Claude Code runtime from the deployed location. Do not change these to repo-relative paths.
-- **Cross-file dependencies**: `review.md`, `refine.md`, and `suggest.md` all depend on `shared/pr-commands.md`. The `design.md` command depends on `shared/design-templates.md`. When editing a shared file, consider the impact on all consuming commands.
+- **Cross-file dependencies**: `review.md`, `refine.md`, and `suggest.md` depend on `shared/pr-commands.md`; `review.md` and `refine.md` also use `shared/review-rubrics.md`. The `design.md` command depends on `shared/design-templates.md`. `daily.md` and `ticket.md` depend on `shared/checkpoint.md`. When editing a shared file, consider the impact on all consuming commands.
+- **Per-command configuration**: `daily.md` and `ticket.md` open with a `## Configuration` section (vault path / GitHub scope / Obsidian vault name / internal-docs path / org). These are user-specific — keep the committed defaults generic and placeholder-only. Never commit real vault paths, org names, or internal directory names.
 
 ## Adding New Commands
 

@@ -54,11 +54,11 @@ pre-commit run -a   # Run all hooks
 
 1. **`.github/workflows/`** — gh aw agentic workflow definitions (markdown → compiled YAML)
 2. **precommit-agentic-check/** — Standalone Python package (`agentic-check` CLI) that runs LLM-backed pre-commit checks on staged diffs. Packaged with setuptools, requires Python ≥3.10, published to PyPI on tags matching `precommit-agentic-check-v*`.
-3. **claude-commands/** — Claude Code custom slash commands (`/review`, `/refine`, `/suggest`, `/design`) and shared reference files. This repo is the source of truth; files are deployed to `~/.claude/` via `make deploy`.
+3. **claude-commands/** — Claude Code custom slash commands (`/review`, `/refine`, `/suggest`, `/design`, `/daily`, `/ticket`) and shared reference files. This repo is the source of truth; files are deployed to `~/.claude/` via `make deploy`.
 
 ### Claude Commands
 
-Custom slash commands for Claude Code that automate code review, refinement, design, and suggestion workflows across Pearl's monorepo.
+Custom slash commands for Claude Code that automate multi-phase developer workflows — code review, refinement, design, PR suggestions, daily activity notes, and ticket authoring.
 
 #### Structure
 
@@ -70,9 +70,13 @@ claude-commands/
 │   ├── review.md          # /review — Code review engine for PRs
 │   ├── refine.md          # /refine — Post-implementation refinement (fix, ship, update PR)
 │   ├── suggest.md         # /suggest — Post suggestions from a /review report to a PR
-│   └── design.md          # /design — Design document and ticket generator
+│   ├── design.md          # /design — Design document and ticket generator
+│   ├── daily.md           # /daily — Daily GitHub-activity note synthesizer (Obsidian)
+│   └── ticket.md          # /ticket — ClickUp ticket authoring (create/update)
 └── shared/                # Shared reference files (deployed to ~/.claude/shared/)
     ├── pr-commands.md      # Shared config for review/refine/suggest (argument parsing, project detection, style guides)
+    ├── review-rubrics.md  # Security/architecture/test/debug rubrics for review & refine
+    ├── checkpoint.md      # Shared approval-gate protocol for daily & ticket
     └── design-templates.md # 1-pager and ticket templates for /design
 ```
 
@@ -84,6 +88,8 @@ claude-commands/
 | `/refine` | Discover issues on the current branch, fix them, commit, update or create a PR, and monitor CI. |
 | `/suggest <issues>` | Post specific findings from a `/review` report as inline PR comments. |
 | `/design <brief>` | Explore the codebase, produce a 1-pager design doc, then break it into implementation tickets. |
+| `/daily [date]` | Synthesize your GitHub activity for a day into an Obsidian daily note (`## Activity` + `## Standup`). Requires a Configuration block (vault path, GitHub scope). |
+| `/ticket [url\|desc]` | Create or update a ClickUp ticket with a 3-section body, scrubbing private-doc links. Requires a Configuration block (internal-docs path). |
 
 #### Editing Workflow
 
@@ -95,7 +101,7 @@ claude-commands/
 
 - **Never edit `~/.claude/commands/` or `~/.claude/shared/` directly** — edit here, then deploy.
 - **Path references**: Commands reference shared files via `~/.claude/shared/...` paths, resolved at Claude Code runtime. Do not change these to repo-relative paths.
-- **Cross-file dependencies**: `review.md`, `refine.md`, and `suggest.md` all depend on `shared/pr-commands.md`. `design.md` depends on `shared/design-templates.md`. When editing a shared file, consider impact on all consumers.
+- **Cross-file dependencies**: `review.md`, `refine.md`, and `suggest.md` depend on `shared/pr-commands.md`; `review.md` and `refine.md` also use `shared/review-rubrics.md`. `design.md` depends on `shared/design-templates.md`. `daily.md` and `ticket.md` depend on `shared/checkpoint.md`. When editing a shared file, consider impact on all consumers.
 - **Adding new commands**: Create a `.md` in `commands/`, optionally add shared material to `shared/`, then `make deploy`. The Makefile uses wildcards so new files are automatically included.
 
 ### Workflow Authoring Pipeline
@@ -112,7 +118,6 @@ claude-commands/
 - `.github/agents/` — GitHub Copilot agent definitions (dispatcher for gh-aw prompts)
 - `.github/aw/` — `gh aw` action lock metadata (pinned SHAs)
 - `precommit-agentic-check/` — Python package for LLM-backed pre-commit gates
-- `agentic-harness/` — Multi-agent orchestration harness (Planner → Generator ↔ Evaluator)
 - `claude-commands/` — Claude Code custom commands (source of truth, deployed to `~/.claude/`)
 - `.vscode/` — VS Code settings and MCP server config for `gh aw mcp-server`
 

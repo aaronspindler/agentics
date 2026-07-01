@@ -5,14 +5,32 @@ Arguments: `$ARGUMENTS` — optional. Can be empty (uses current branch's PR), a
 ## Phase 0: Context Detection
 
 > **Shared reference**: Read `~/.claude/shared/pr-commands.md` at the start. Use its sections as referenced below.
+> **Review rubrics**: Also read `~/.claude/shared/review-rubrics.md` at the start — the Phase 2 fix loop references its "Debugging Methodology" and "Error Correlation" sections.
 
-1. **Branch**: `git branch --show-current`.
-2. **Branch guard**: If on `main` or `master`, STOP with an error: "You are on the main/master branch. Switch to a feature branch before running refine."
-3. **PR lookup**: Follow the "Argument Parsing" section of `~/.claude/shared/pr-commands.md` to parse `$ARGUMENTS`. Arguments are **optional** — if empty, run `gh pr list --head <branch> --repo <owner/repo> --json number,url --limit 1` to find the current branch's PR. If no PR found, note "no PR" and continue (one will be created at Phase 4).
-4. **Sub-project CLAUDE.md**: Follow the "Sub-project CLAUDE.md Lookup" section of `~/.claude/shared/pr-commands.md`, targeting the current working directory.
-5. **Project type detection**: Follow the "Project Type Detection Matrix" in `~/.claude/shared/pr-commands.md`. Check the working directory for marker files. First match wins. Ignore the `Install` column (dependencies are already present in the working environment). If nothing detected, report "Could not detect project type" and skip that step.
+1. **Working directory**: Run `git remote -v` in the CWD. If `$ARGUMENTS` contains a GitHub URL or `owner/repo#number`, parse the target `<owner>/<repo>` from it. If the target repo differs from the CWD's origin URL, scan one level deep in the CWD for a subdirectory whose `git remote -v` origin URL contains `<owner>/<repo>`; if found, set `WORK_DIR` to that subdirectory; otherwise use CWD. Then determine the git root: `GIT_ROOT=$(git -C <WORK_DIR> rev-parse --show-toplevel)`. Compute `SUB_PATH` as the path of `WORK_DIR` relative to `GIT_ROOT` (empty/`.` if they are the same).
 
-Report the detected context (repo, branch, PR status, project type, lint command, test command) before proceeding.
+2. **Branch**: `git -C <WORK_DIR> branch --show-current` → `CURRENT_BRANCH`.
+
+3. **Branch detection & worktree setup**:
+   - If a PR argument was provided: fetch the PR's head branch via `gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json headRefName` → `PR_HEAD_BRANCH`. Set `WORKTREE_NAME=.refine-pr-<PR_NUMBER>`.
+   - If no PR argument was provided: set `PR_HEAD_BRANCH = CURRENT_BRANCH`. If `CURRENT_BRANCH` is `main` or `master`, STOP with error: "You are on the main/master branch. Switch to a feature branch before running refine." Otherwise set `WORKTREE_NAME=.refine-<CURRENT_BRANCH>` (replace `/` and any non-alphanumeric chars with `-`).
+
+   **Create worktree**:
+   1. `git -C <GIT_ROOT> fetch origin <PR_HEAD_BRANCH>`
+   2. `WORKTREE_PATH=<GIT_ROOT>/<WORKTREE_NAME>`
+   3. If a worktree already exists at `WORKTREE_PATH`, remove it first: `git -C <GIT_ROOT> worktree remove <WORKTREE_PATH> --force`
+   4. `git -C <GIT_ROOT> worktree add <WORKTREE_PATH> <PR_HEAD_BRANCH>`
+   5. Update `WORK_DIR` to `<WORKTREE_PATH>/<SUB_PATH>` (or just `<WORKTREE_PATH>` if `SUB_PATH` is empty/`.`). All file edits and lint/test commands now target this path.
+
+   Report: "Working in worktree `<WORKTREE_PATH>` on branch `<PR_HEAD_BRANCH>`."
+
+4. **PR lookup**: Follow the "Argument Parsing" section of `~/.claude/shared/pr-commands.md` to parse `$ARGUMENTS`. Arguments are **optional** — if empty, run `gh pr list --head <branch> --repo <owner/repo> --json number,url --limit 1` to find the current branch's PR. If no PR found, note "no PR" and continue (one will be created at Phase 4).
+
+5. **Sub-project CLAUDE.md**: Follow the "Sub-project CLAUDE.md Lookup" section of `~/.claude/shared/pr-commands.md`, targeting `WORK_DIR`.
+
+6. **Project type detection**: Follow the "Project Type Detection Matrix" in `~/.claude/shared/pr-commands.md`. Check `WORK_DIR` for marker files. First match wins. Ignore the `Install` column (dependencies are already present in the working environment). If nothing detected, report "Could not detect project type" and skip that step.
+
+Report the detected context (repo, `WORK_DIR`, `WORKTREE_PATH`, branch, PR status, project type, lint command, test command) before proceeding.
 
 ## Phase 1: Discovery
 
@@ -31,7 +49,7 @@ Spawn a general-purpose agent with these instructions and context:
 ### Subagent 2: Local Validation (general-purpose agent)
 
 Spawn a general-purpose agent with these instructions and context:
-- **Provide**: The current working directory, the detected lint command and test command from Phase 0, whether a PR exists, and the OWNER/REPO/PR_NUMBER (if applicable).
+- **Provide**: `WORK_DIR` (from Phase 0 step 1), the detected lint command and test command from Phase 0, whether a PR exists, and the OWNER/REPO/PR_NUMBER (if applicable).
 - **Tasks**:
   - **1a. Lint Issues**: Run the detected lint command. Collect: file, line, rule/hook, message for each issue.
   - **1b. Test Failures**: After lint completes, run the detected test command. Collect: test name, file, assertion error or traceback summary.
@@ -110,7 +128,9 @@ For each `TEST_QUALITY` item, show the full test function body and explain why i
 
 Propose a fix plan: which items will be fixed, which will be skipped (with reason — e.g., HUMAN_QUESTION items are flagged for user attention, CI items may be environment-specific).
 
-**Pause here**: Ask the user: "Which items should I fix? (all / exclude specific numbers / stop)"
+**Auto-proceed condition**: If every item in the triage table is type LINT (priority 1 only) — no HUMAN items, no TEST items, no TEST_QUALITY items, no CI items — display the table and immediately proceed with "all" without pausing for input. Report: "All issues are lint-only — auto-proceeding with full fix."
+
+**Otherwise pause**: Ask the user: "Which items should I fix? (all / exclude specific numbers / stop)"
 
 Wait for user input before proceeding.
 
@@ -119,13 +139,14 @@ Wait for user input before proceeding.
 For each round (up to 3):
 
 1. **Fix issues in priority order** (LINT → TEST → TEST_QUALITY → HUMAN_ACTIONABLE → BOT_ACTIONABLE → CI):
+   Before fixing any TEST or CI item, apply the "Debugging Methodology" from `~/.claude/shared/review-rubrics.md` (capture error + trace → reproduce → isolate → **minimal** fix → verify; fix the root cause, not the symptom). This does not change the priority order below.
    - **LINT**: Re-run the detected lint command (many pre-commit hooks auto-fix on first run). Then re-run to verify. Manually edit anything auto-fix didn't resolve.
-   - **TEST**: Read the failing test and the code under test. Fix the source code or the test as appropriate.
+   - **TEST**: Read the failing test and the code under test. Fix the source code or the test as appropriate. Form a root-cause hypothesis and confirm it against the actual values/trace before editing (per the Debugging Methodology).
    - **TEST_QUALITY**: Remove the flagged test function. If all tests in a class are flagged, remove the entire class. If all tests in a file are flagged, delete the file. After removal, clean up any imports that become unused and any file-local fixtures that are no longer referenced. Do NOT touch shared fixtures in `conftest.py` files. Re-run tests after removal to confirm no other tests break. If removal causes a test failure (e.g., due to shared state or ordering dependencies), mark as **STUCK** and restore the test.
    - **HUMAN_ACTIONABLE**: Read the comment and surrounding code (at least 20 lines of context above and below). Validate against current file state and project conventions (reference sub-project CLAUDE.md). Apply the fix with ripple effect analysis (imports, tests, callers).
    - **HUMAN_QUESTION**: Skip — flag for user attention in the report.
    - **BOT_ACTIONABLE**: Read the comment, understand the suggestion, and apply the fix if clear and correct.
-   - **CI**: Attempt to reproduce and fix locally. If the failure is environment-specific (e.g., missing secret, deployment issue), mark as "CANNOT FIX LOCALLY".
+   - **CI**: Attempt to reproduce and fix locally. If the failure is environment-specific (e.g., missing secret, deployment issue), mark as "CANNOT FIX LOCALLY". When triaging, work backward from the symptom, correlate the failure with recent changes on the branch, and check for cascading failures (per the "Error Correlation" section of `~/.claude/shared/review-rubrics.md`).
 
 2. **Verify** — re-run lint (first) then tests (second) after fixes.
 
@@ -179,8 +200,8 @@ Present everything the user needs to approve before shipping:
 
 1. **Results report** from Phase 3
 2. **Proposed commit message** — descriptive, covering all fixes (e.g., "Address PR review feedback and fix lint/test issues")
-3. **Proposed replies** — For each human comment with FIXED status where there is a **strong case** (the comment explicitly requested a specific change AND the fix implements that exact change), draft a brief reply (e.g., "Good catch — refactored to use a dataclass as suggested"). Show each proposed reply. These will NOT be posted unless the user explicitly approves each one.
-   - Vague comments ("consider...") or partial fixes → no reply drafted, silent resolve only.
+3. **Proposed replies** — For each human comment with FIXED status where there is a **strong case** (the comment explicitly requested a specific change AND the fix implements that exact change), draft a brief reply (e.g., "Good catch — refactored to use a dataclass as suggested"). Show each proposed reply. These will NOT be posted unless the user explicitly approves each one. The thread will NOT be resolved regardless — that is left to the human reviewer.
+   - Vague comments ("consider...") or partial fixes → no reply drafted. Thread remains open for the reviewer.
 4. **Bot resolution note** — For bot comments with FIXED status: note these will be silently resolved (no replies).
 5. **Removed tests** — If any tests were removed (REMOVED status), list each one with its file and reason. The user must explicitly see and approve all test removals before shipping.
 6. **PR status** — Whether a PR exists (will be updated) or will be created new.
@@ -194,15 +215,15 @@ Wait for explicit user confirmation before proceeding.
 Execute all shipping operations in sequence:
 
 ### 4a. Commit & Push
-1. Stage modified files: `git add <specific files>` (only files that were changed during fixing).
+Run all git commands from `WORKTREE_PATH` (the worktree root, not the sub-project subdirectory).
+1. Stage modified files: `git -C <WORKTREE_PATH> add <specific files>` (only files changed during fixing; use paths relative to `WORKTREE_PATH`).
 2. Commit with the approved message.
-3. Push: `git push -u origin <branch>`.
+3. Push: `git -C <WORKTREE_PATH> push -u origin <branch>`.
 
 ### 4b. Resolve Comment Threads
 For each fixed comment thread:
-- **Human + FIXED + strong case + user approved the reply**: Post the reply via `gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/comments/<COMMENT_ID>/replies -f body="<REPLY_TEXT>"`, then resolve via GraphQL `resolveReviewThread`.
-- **Human + FIXED + strong case + user declined the reply**: Resolve silently via GraphQL only.
-- **Human + FIXED + weak case**: Resolve silently via GraphQL only.
+- **Human + FIXED + user approved the reply**: Post the reply via `gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/comments/<COMMENT_ID>/replies -f body="<REPLY_TEXT>"`. Do NOT resolve the thread — leave it for the human reviewer to resolve.
+- **Human + FIXED + no reply (weak case or user declined)**: Do NOT post a reply and do NOT resolve the thread. Leave it for the human reviewer to resolve.
 - **Bot + FIXED**: Resolve silently via GraphQL only.
 - **Not fixed**: Do NOT resolve.
 
@@ -218,29 +239,33 @@ gh api graphql -f query='
 ```
 
 ### 4c. Create or Update PR
-1. Generate the PR description by analyzing all commits on the branch (`git log <BASE_REF>..HEAD`), the diff (`git diff <BASE_REF>...HEAD`), and the fix report from Phase 3. Write a clear, concise description covering: what changed, why, and any notable implementation details. Do NOT include a test plan section unless the changes are unusually complex or uncommon.
+1. Generate the PR description by analyzing all commits on the branch (`git -C <WORKTREE_PATH> log <BASE_REF>..HEAD`), the diff (`git -C <WORKTREE_PATH> diff <BASE_REF>...HEAD`), and the fix report from Phase 3. Write a clear, concise description covering: what changed, why, and any notable implementation details. Do NOT include a test plan section unless the changes are unusually complex or uncommon.
 2. **If no PR exists**: Create via `gh pr create --repo <OWNER>/<REPO> --title "<title>" --body "<body>"`.
 3. **If PR exists**: Update via `gh pr edit <PR_NUMBER> --repo <OWNER>/<REPO> --title "<title>" --body "<body>"`.
 4. Report the PR URL.
 
+### 4d. Worktree Cleanup
+Remove the worktree now that all ship operations are complete:
+```
+git -C <GIT_ROOT> worktree remove <WORKTREE_PATH>
+```
+Report: "Worktree `<WORKTREE_PATH>` removed."
+
 ## Phase 5: CI Watch
+
+> **Default: SKIP this phase.** Do NOT monitor CI unless the user explicitly asked for it in their invocation (e.g. "watch CI", "monitor CI", "wait for CI"). If CI monitoring was not requested, report the PR URL and stop after Phase 4. Only enter this phase when monitoring was explicitly requested.
 
 Monitor GitHub Actions after the push.
 
 1. **Record push timestamp**: `PUSH_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)`
-2. **Poll CI status** every 30 seconds (max 30 polls = 15 minutes):
-
-   Each poll:
-   - Run `gh pr checks <PR_NUMBER> --repo <OWNER>/<REPO> --json name,state,conclusion`
-   - Count: total, passing, failing, pending
-   - Display: `CI: X/Y passing, Z failing, W pending (poll N/30)`
+2. **Watch CI**: Run `gh pr checks <PR_NUMBER> --repo <OWNER>/<REPO> --watch` via Bash with `run_in_background: true`, then use the Monitor tool to stream its output. This exits automatically when all checks complete or any fails. Report check names as they surface. Maximum wall-clock: 15 minutes. If `--watch` + Monitor do not compose cleanly, fall back to a plain backgrounded `gh pr checks <PR_NUMBER> --repo <OWNER>/<REPO> --watch` and await its completion notification.
 
 3. **Exit conditions**:
    - **All checks pass** → Proceed to Phase 6.
    - **Any check fails** → Fetch failed check logs via `gh run view <RUN_ID> --repo <OWNER>/<REPO> --log-failed`. Report failure details. Ask: "CI failed. Run another fix round? (yes/no)"
      - If yes → Re-enter Phase 1 scoped to CI failures only (skip re-fetching old comments, skip re-reading already-resolved threads).
      - If no → Stop with the failure report.
-   - **Timeout (30 polls)** → Report: "CI polling timed out after 15 minutes. X checks still pending." Stop.
+   - **Timeout (15 minutes)** → Report: "CI watch timed out. X checks still pending." Stop.
 
 ## Phase 6: Post-CI Comment Scan
 
@@ -265,12 +290,10 @@ After CI passes, check for new automated reviewer comments.
 
 ## Comment Resolution Rules
 
-- **Strong case replies**: For human comments where the fix directly implements what was explicitly requested, draft a brief reply. Show it to the user at Checkpoint 2. Do NOT auto-post. The user decides whether each reply gets posted.
-- **User approves reply**: Post it, then resolve the thread via GraphQL.
-- **User declines reply**: Resolve silently via GraphQL only.
-- **Weak case / bot / all other fixed comments**: Resolve silently via GraphQL `resolveReviewThread`.
+- **Human comments — replies**: For human comments where the fix directly implements what was explicitly requested, draft a brief reply. Show it to the user at Checkpoint 2. Do NOT auto-post. The user decides whether each reply gets posted.
+- **Human comments — thread resolution**: Never auto-resolve human reviewer threads, even when the underlying issue is fixed and a reply is posted. Leave the thread open for the human reviewer to resolve themselves.
+- **Bot comments — fixed**: Resolve silently via GraphQL `resolveReviewThread`. No reply needed.
 - **Unfixed comments**: Never resolve.
-- **Never auto-post**: All replies must be shown to the user and explicitly approved before posting.
 
 ## Key Constraints
 
@@ -278,6 +301,7 @@ Follow all "Shared Constraints" from `~/.claude/shared/pr-commands.md`, plus the
 
 - **Edit locally only**: Use the Edit tool for all file modifications. NEVER use GitHub MCP tools (`push_files`, `create_or_update_file`) to modify files.
 - **Never auto-post replies**: Show proposed reply text to the user; only post if they explicitly approve each one.
+- **Never auto-resolve human threads**: Do not resolve human reviewer comment threads under any circumstances — not even after the underlying issue is fixed and a reply is posted. Leave resolution to the reviewer.
 - **Max 3 fix rounds** per entry into Phase 2.
 - **Be surgical**: Only edit files with identified issues. Do not refactor or "improve" surrounding code.
 - **Branch guard**: Refuse to run on main/master.

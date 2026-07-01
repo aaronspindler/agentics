@@ -1,2 +1,6 @@
 *.pyc
 *.egg-info/
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

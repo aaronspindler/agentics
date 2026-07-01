@@ -1,14 +1,14 @@
 # Agentics
 
-> CLI tools, slash commands, and workflows that put AI agents to work across the development lifecycle — from code review to long-running feature implementation.
+> CLI tools, slash commands, and workflows that put AI agents to work across the development lifecycle — from code review to workflow automation.
 
 ## Subprojects
 
 ### claude-commands
 
-> Custom slash commands for Claude Code that automate code review, refinement, design, and PR feedback.
+> Custom slash commands for Claude Code that automate code review, refinement, design, PR feedback, daily activity notes, and ticket authoring.
 
-Four commands that handle multi-phase workflows end-to-end:
+Six commands that handle multi-phase workflows end-to-end:
 
 | Command | What it does |
 |---------|-------------|
@@ -16,8 +16,10 @@ Four commands that handle multi-phase workflows end-to-end:
 | `/refine` | Discovers issues on the current branch (lint, tests, CI failures, PR comments), fixes them in up to 3 rounds, commits, pushes, creates/updates the PR, and watches CI. |
 | `/suggest <issues>` | Posts specific findings from a `/review` report as inline PR comments with `suggestion` blocks. Detects stale reviews and deduplicates against existing comments. |
 | `/design <brief>` | Explores the codebase, produces a 1-pager design doc with alternatives and comparison matrix, then breaks the solution into sequenced implementation tickets. |
+| `/daily [date]` | Synthesizes your GitHub activity for a single day into an Obsidian daily note (`## Activity` + `## Standup`), creating it from a template or updating in place. Local-write only. Needs a Configuration block (vault path, GitHub scope). |
+| `/ticket [url\|desc]` | Creates or updates a ClickUp ticket with a structured 3-section body (Description, Acceptance Criteria, Gotchas), resolving private-doc links to public URLs or inlining them. Needs a Configuration block (internal-docs path). |
 
-Commands share common config via `shared/pr-commands.md` (argument parsing, project type detection, PR comment fetching) and `shared/design-templates.md` (document structure).
+Commands share common reference files in `shared/`: `pr-commands.md` (argument parsing, project type detection, PR comment fetching), `review-rubrics.md` (security/architecture/test rubrics for `/review` and `/refine`), `checkpoint.md` (approval-gate protocol for `/daily` and `/ticket`), and `design-templates.md` (document structure).
 
 **Install & usage:**
 
@@ -29,6 +31,8 @@ cd claude-commands && make deploy   # copies to ~/.claude/commands/ and ~/.claud
 /refine
 /suggest 1,3
 /design "Add patient export API"
+/daily                    # /daily and /ticket each read a Configuration block at the
+/ticket "Fix flaky test"  # top of the command — set vault path / GitHub scope / internal-docs path first
 ```
 
 | Make target | What it does |
@@ -72,33 +76,6 @@ Requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in the environment. Customize t
 
 Docs: [`precommit-agentic-check/README.md`](precommit-agentic-check/README.md)
 
----
-
-### agentic-harness
-
-> Multi-agent orchestration harness for long-running development tasks, based on Anthropic's [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps).
-
-Orchestrates three independent agents — **Planner** (expands a brief into a spec + sprint contract), **Generator** (writes code, runs tests), and **Evaluator** (read-only grading against the contract) — with context resets between each call and file-based handoffs. The evaluator cannot write files, preventing self-evaluation bias. Zero runtime dependencies.
-
-```
-Brief → Planner → spec.json → Generator ↔ Evaluator (up to N iterations) → result
-```
-
-**Install & usage:**
-
-```bash
-pip install -e ./agentic-harness
-export ANTHROPIC_API_KEY=sk-ant-...
-
-agentic-harness run --brief-text "Add TIN filtering" --project ../provider-payments/
-agentic-harness plan --brief path/to/brief.md --project ../provider-payments/
-agentic-harness run --dry-run --brief-text "Add health check" --project ../provider-payments/
-```
-
-Auto-detects project type (Poetry, pnpm, Pants, Terraform) and loads `.ai/` docs per agent role. Workspaces are resumable — see [`agentic-harness/README.md`](agentic-harness/README.md) for configuration and workspace details.
-
----
-
 ## GitHub Agentic Workflows
 
 AI-powered workflows authored as markdown with YAML frontmatter, compiled to GitHub Actions via [`gh aw`](https://github.com/github/gh-aw).
@@ -133,17 +110,13 @@ Detects divergence between `CLAUDE.md` and `AGENTS.md`, updates the file missing
 ```
 agentics/
 ├── claude-commands/             # Claude Code slash commands (source of truth)
-│   ├── commands/                #   /review, /refine, /suggest, /design
+│   ├── commands/                #   /review, /refine, /suggest, /design, /daily, /ticket
 │   ├── shared/                  #   Shared config and templates
 │   └── Makefile                 #   deploy, diff, status
 ├── precommit-agentic-check/     # LLM-backed pre-commit gate (Python package)
 │   ├── src/agentic_check/       #   CLI, providers, schema, git input
 │   ├── tests/
 │   └── .ai/prompts/             #   Policy prompt template
-├── agentic-harness/             # Multi-agent orchestration harness (Python package)
-│   ├── src/agentic_harness/     #   CLI, agents, providers, tools, orchestrator
-│   ├── tests/
-│   └── .ai/prompts/             #   Planner, generator, evaluator prompts
 ├── .github/
 │   ├── workflows/               #   Agentic workflow sources (.md) + compiled (.lock.yml)
 │   └── agents/                  #   GitHub Copilot agent dispatcher

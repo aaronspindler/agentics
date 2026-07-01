@@ -7,17 +7,16 @@ Arguments: `$ARGUMENTS` — required. Freeform description of what to design. Ca
 > **Templates**: Read `~/.claude/shared/design-templates.md` at the start. Use its templates for all generated documents.
 
 1. **Parse the brief**: Read `$ARGUMENTS` as the design brief. Identify the core problem or feature being described.
-2. **Project name**: Derive a kebab-case project name from the description (e.g., "calculator testing architecture" → `calculator-testing-architecture`). Ask the user to confirm or rename.
-3. **Output directory**: Set `OUTPUT_DIR` to `designs/<current-year>/<project-name>/`. Check if it already exists:
-   - If it exists: warn the user and ask whether to overwrite, pick a new name, or stop.
-   - If it does not exist: note the path and proceed.
-4. **Identify relevant areas**: From the description, determine which parts of the codebase are likely involved (e.g., specific services, libraries, infrastructure directories).
-5. **Parallel codebase exploration**: Launch up to 3 Explore subagents IN PARALLEL (single message, multiple Agent tool calls), one per relevant area. Do NOT use `run_in_background` — all subagents must complete in foreground before proceeding. Each agent should:
+2. **Derive project name (tentative)**: Derive a kebab-case project name from the description (e.g., "calculator testing architecture" → `calculator-testing-architecture`). Do NOT pause for confirmation yet — present it alongside the exploration findings.
+3. **Identify relevant areas**: From the description, determine which parts of the codebase are likely involved (e.g., specific services, libraries, infrastructure directories).
+4. **Parallel codebase exploration**: Launch up to 3 Explore subagents IN PARALLEL (single message, multiple Agent tool calls), one per relevant area. Do NOT use `run_in_background` — all subagents must complete in foreground before proceeding. Each agent should:
    - Read the sub-project's CLAUDE.md, README.md, or `.claude/CLAUDE.md` for architecture, patterns, build/test commands, code organization, and naming conventions.
    - Explore the relevant source code to understand: current architecture (service boundaries, API endpoints, database schemas, models), existing code that would be modified or extended (read actual files, not just directory listings), infrastructure patterns (Terraform modules, ECS configs, RDS instances), related implementations that could serve as patterns or precedent, and database models, enum values, configuration patterns.
    - Return: a summary of the area's architecture, relevant files and patterns, and any existing code that informs the design.
    If only 1 area is involved, use a single Explore agent. If more than 3 areas, group related ones into 3 agents.
-6. **Report findings**: After all Explore agents complete, synthesize their results. Summarize: affected areas, relevant existing code, current architecture, and patterns that inform the design.
+5. **Name confirmation + output directory**: After all Explore agents complete, present the findings summary AND the proposed project name in the same message — ask the user to confirm or rename. Once confirmed, set `OUTPUT_DIR` to `designs/<current-year>/<project-name>/`. Check if it already exists:
+   - If it exists: warn the user and ask whether to overwrite, pick a new name, or stop.
+   - If it does not exist: note the path and proceed.
 
 ## Phase 1: 1-Pager
 
