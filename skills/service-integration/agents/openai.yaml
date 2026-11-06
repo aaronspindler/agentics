@@ -1,0 +1,7 @@
+interface:
+  display_name: "Service Integration"
+  short_description: "Align service identity and cross-stack endpoints"
+  default_prompt: "Use $service-integration to integrate this service into the repository."
+
+policy:
+  allow_implicit_invocation: true

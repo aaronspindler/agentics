@@ -1,0 +1,6 @@
+interface:
+  display_name: "PR Metadata"
+  short_description: "Normalize concise PR body and labels"
+  default_prompt: "Use $pr-metadata to normalize the pull request title, body, and labels."
+policy:
+  allow_implicit_invocation: true

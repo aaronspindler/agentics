@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0",
+  "items": [
+    {
+      "id": "skill:change-plan",
+      "kind": "skill",
+      "name": "change-plan",
+      "path": "skills/change-plan",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:change-tests",
+      "kind": "skill",
+      "name": "change-tests",
+      "path": "skills/change-tests",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:change-verify",
+      "kind": "skill",
+      "name": "change-verify",
+      "path": "skills/change-verify",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:change-docs",
+      "kind": "skill",
+      "name": "change-docs",
+      "path": "skills/change-docs",
+      "group": "docs",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:runtime-probe",
+      "kind": "skill",
+      "name": "runtime-probe",
+      "path": "skills/runtime-probe",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:cohesion-guard",
+      "kind": "skill",
+      "name": "cohesion-guard",
+      "path": "skills/cohesion-guard",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:change-audit",
+      "kind": "skill",
+      "name": "change-audit",
+      "path": "skills/change-audit",
+      "group": "core",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:deploy-safety",
+      "kind": "skill",
+      "name": "deploy-safety",
+      "path": "skills/deploy-safety",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/infrastructure.md": "references/infrastructure.md"
+      }
+    },
+    {
+      "id": "skill:service-integration",
+      "kind": "skill",
+      "name": "service-integration",
+      "path": "skills/service-integration",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/infrastructure.md": "references/infrastructure.md"
+      }
+    },
+    {
+      "id": "skill:stack-rollout",
+      "kind": "skill",
+      "name": "stack-rollout",
+      "path": "skills/stack-rollout",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/infrastructure.md": "references/infrastructure.md"
+      }
+    },
+    {
+      "id": "skill:observability-diagnosis",
+      "kind": "skill",
+      "name": "observability-diagnosis",
+      "path": "skills/observability-diagnosis",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/observability.md": "references/observability.md"
+      }
+    },
+    {
+      "id": "skill:dokploy-ops",
+      "kind": "skill",
+      "name": "dokploy-ops",
+      "path": "skills/dokploy-ops",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/live-ops.md": "references/live-ops.md"
+      }
+    },
+    {
+      "id": "skill:cloudflare-ops",
+      "kind": "skill",
+      "name": "cloudflare-ops",
+      "path": "skills/cloudflare-ops",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/live-ops.md": "references/live-ops.md"
+      }
+    },
+    {
+      "id": "skill:docs-audit",
+      "kind": "skill",
+      "name": "docs-audit",
+      "path": "skills/docs-audit",
+      "group": "docs",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:docs-maintain",
+      "kind": "skill",
+      "name": "docs-maintain",
+      "path": "skills/docs-maintain",
+      "group": "docs",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:backlog-maintain",
+      "kind": "skill",
+      "name": "backlog-maintain",
+      "path": "skills/backlog-maintain",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:codex-maintain",
+      "kind": "skill",
+      "name": "codex-maintain",
+      "path": "skills/codex-maintain",
+      "group": "maintenance",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md"
+      }
+    },
+    {
+      "id": "skill:pr-review",
+      "kind": "skill",
+      "name": "pr-review",
+      "path": "skills/pr-review",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md"
+      }
+    },
+    {
+      "id": "skill:pr-refine",
+      "kind": "skill",
+      "name": "pr-refine",
+      "path": "skills/pr-refine",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md"
+      }
+    },
+    {
+      "id": "skill:pr-comment",
+      "kind": "skill",
+      "name": "pr-comment",
+      "path": "skills/pr-comment",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md"
+      }
+    },
+    {
+      "id": "skill:pr-conflicts",
+      "kind": "skill",
+      "name": "pr-conflicts",
+      "path": "skills/pr-conflicts",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md"
+      }
+    },
+    {
+      "id": "skill:pr-handoff",
+      "kind": "skill",
+      "name": "pr-handoff",
+      "path": "skills/pr-handoff",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-metadata.md": "references/pr-metadata.md"
+      }
+    },
+    {
+      "id": "skill:pr-metadata",
+      "kind": "skill",
+      "name": "pr-metadata",
+      "path": "skills/pr-metadata",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md",
+        "references/pr-metadata.md": "references/pr-metadata.md"
+      }
+    },
+    {
+      "id": "skill:pr-preview",
+      "kind": "skill",
+      "name": "pr-preview",
+      "path": "skills/pr-preview",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md",
+        "references/preview.md": "references/preview.md"
+      }
+    },
+    {
+      "id": "skill:pre-pr-gate",
+      "kind": "skill",
+      "name": "pre-pr-gate",
+      "path": "skills/pre-pr-gate",
+      "group": "github",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/pr-workflows.md": "references/pr-workflows.md",
+        "references/pr-metadata.md": "references/pr-metadata.md",
+        "references/preview.md": "references/preview.md"
+      }
+    },
+    {
+      "id": "skill:maintenance-workflow",
+      "kind": "skill",
+      "name": "maintenance-workflow",
+      "path": "skills/maintenance-workflow",
+      "group": "maintenance",
+      "dependencies": [],
+      "resources": {
+        "references/repository-context.md": "references/repository-context.md",
+        "references/workflow-index.md": "references/workflow-index.md",
+        "references/automation-guidelines.md": "references/automation-guidelines.md",
+        "references/workflows/pr-guardian.md": "workflows/pr-guardian.md",
+        "references/workflows/pr-reviewer.md": "workflows/pr-reviewer.md",
+        "references/workflows/merged-pr-comment-sweep.md": "workflows/merged-pr-comment-sweep.md",
+        "references/workflows/sentry-daily-triage.md": "workflows/sentry-daily-triage.md",
+        "references/workflows/daily-bug-scan.md": "workflows/daily-bug-scan.md",
+        "references/workflows/test-gap-detection.md": "workflows/test-gap-detection.md",
+        "references/workflows/docs-cohesion-keeper.md": "workflows/docs-cohesion-keeper.md",
+        "references/workflows/code-health-scout.md": "workflows/code-health-scout.md",
+        "references/workflows/daily-changes-digest.md": "workflows/daily-changes-digest.md",
+        "references/workflows/orchestrator.md": "workflows/orchestrator.md",
+        "references/workflows/product-marketing-sync.md": "workflows/product-marketing-sync.md"
+      }
+    },
+    {
+      "id": "agent:pr_explorer",
+      "kind": "agent",
+      "name": "pr_explorer",
+      "path": "agents/pr-explorer.toml",
+      "group": "github",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:ci_explorer",
+      "kind": "agent",
+      "name": "ci_explorer",
+      "path": "agents/ci-explorer.toml",
+      "group": "github",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:reviewer",
+      "kind": "agent",
+      "name": "reviewer",
+      "path": "agents/reviewer.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:auditor",
+      "kind": "agent",
+      "name": "auditor",
+      "path": "agents/auditor.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:design_peer_reviewer",
+      "kind": "agent",
+      "name": "design_peer_reviewer",
+      "path": "agents/design-peer-reviewer.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:test_gap_explorer",
+      "kind": "agent",
+      "name": "test_gap_explorer",
+      "path": "agents/test-gap-explorer.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:visual_qa_explorer",
+      "kind": "agent",
+      "name": "visual_qa_explorer",
+      "path": "agents/visual-qa-explorer.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:docs_maintainer",
+      "kind": "agent",
+      "name": "docs_maintainer",
+      "path": "agents/docs-maintainer.toml",
+      "group": "docs",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:docs_researcher",
+      "kind": "agent",
+      "name": "docs_researcher",
+      "path": "agents/docs-researcher.toml",
+      "group": "docs",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:ops_explorer",
+      "kind": "agent",
+      "name": "ops_explorer",
+      "path": "agents/ops-explorer.toml",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:infrastructure_analyst",
+      "kind": "agent",
+      "name": "infrastructure_analyst",
+      "path": "agents/infrastructure-analyst.toml",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:observability_diagnostician",
+      "kind": "agent",
+      "name": "observability_diagnostician",
+      "path": "agents/observability-diagnostician.toml",
+      "group": "ops",
+      "dependencies": [],
+      "resources": {}
+    },
+    {
+      "id": "agent:simplicity_reviewer",
+      "kind": "agent",
+      "name": "simplicity_reviewer",
+      "path": "agents/simplicity-reviewer.toml",
+      "group": "core",
+      "dependencies": [],
+      "resources": {}
+    }
+  ]
+}

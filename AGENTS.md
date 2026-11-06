@@ -8,6 +8,27 @@ Central repository for reusable AI agent configuration, rules, workflows, and or
 
 ## Key Commands
 
+### Codex toolkit
+
+```bash
+python3 -m pip install '.[test]' build
+agentics validate
+python3 -m unittest discover -s tests -v
+python3 -m build
+agentics install --all --dry-run
+agentics install --all
+agentics status
+agentics update --dry-run
+```
+
+- Edit canonical sources here; global copies are managed installations, not editable source.
+- Keep skills portable by discovering the target repository's root/scoped guidance and native commands. Project policy, private operational context, and historical markers stay with their owning projects.
+- Maintain catalog IDs, dependencies, bundled-resource links, and existing invocation policies together. Shared custom agents inherit model/reasoning and retain review-only instructions.
+- Every install/update/uninstall must preflight ownership and all selected destinations. Refuse unknown, modified, missing, or additional managed files; dry-run must not create state.
+- Helper target repositories come from explicit `--repo-root` or Git CWD discovery, never the installed package location. Tests mock external writes.
+- Installing workflows does not configure schedules or authorize Git/GitHub publication or live deployment. Keep conventional CI/CD with its owning project.
+- Wheel builds must include the complete catalog. Verify the wheel from outside the checkout as well as source tests.
+
 ### gh aw (Agentic Workflows)
 
 ```bash
@@ -50,11 +71,12 @@ pre-commit run -a   # Run all hooks
 
 ## Architecture
 
-### Three Subprojects
+### Four Subprojects
 
-1. **`.github/workflows/`** — gh aw agentic workflow definitions (markdown → compiled YAML)
-2. **precommit-agentic-check/** — Standalone Python package (`agentic-check` CLI) that runs LLM-backed pre-commit checks on staged diffs. Packaged with setuptools, requires Python ≥3.10, published to PyPI on tags matching `precommit-agentic-check-v*`.
-3. **claude-commands/** — Claude Code custom slash commands (`/review`, `/refine`, `/suggest`, `/design`, `/daily`, `/ticket`) and shared reference files. This repo is the source of truth; files are deployed to `~/.claude/` via `make deploy`.
+1. **Codex toolkit** — `src/agentics_tools/` supplies the `agentics` installer and portable GitHub helpers. Canonical `skills/`, `agents/`, `workflows/`, and `references/` are assembled by `catalog.json` and bundled in the Python wheel.
+2. **`.github/workflows/`** — gh aw agentic workflow definitions (markdown → compiled YAML)
+3. **precommit-agentic-check/** — Standalone Python package (`agentic-check` CLI) that runs LLM-backed pre-commit checks on staged diffs. Packaged with setuptools, requires Python ≥3.10, published to PyPI on tags matching `precommit-agentic-check-v*`.
+4. **claude-commands/** — Claude Code custom slash commands (`/review`, `/refine`, `/suggest`, `/design`, `/daily`, `/ticket`) and shared reference files. This repo is the source of truth; files are deployed to `~/.claude/` via `make deploy`.
 
 ### Claude Commands
 
@@ -136,4 +158,5 @@ Supported engines: `copilot`, `claude`, `codex`, or custom.
 - Never merge Dependabot PRs that modify generated manifests (`.github/workflows/package.json`, etc.) — update the source `.md` files and rerun `gh aw compile --dependabot`
 - Workflow source `.md` files live in `.github/workflows/` — author and edit them there directly.
 - The `CLAUDE.md` and `AGENTS.md` files must stay in sync (the `agents-doc-sync` workflow enforces this)
+- **Maintenance playbooks**: `workflows/` contains manually requested procedures, distinct from gh-aw sources under `.github/workflows/`. Do not recreate retired schedulers.
 - **claude-commands**: Never edit files directly in `~/.claude/commands/` or `~/.claude/shared/` — edit in this repo, then `make deploy`. Commands reference shared files via `~/.claude/shared/...` paths resolved at runtime.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Docs"
+  short_description: "Update the canonical docs that own the changed behavior"
+  default_prompt: "Use $change-docs to update the canonical documentation for this change."
+policy:
+  allow_implicit_invocation: true

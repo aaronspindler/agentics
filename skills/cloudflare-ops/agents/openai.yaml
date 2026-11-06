@@ -1,0 +1,6 @@
+interface:
+  display_name: "Cloudflare Ops"
+  short_description: "Inspect Cloudflare state and guide safe recovery"
+  default_prompt: "Use $cloudflare-ops to inspect Cloudflare state and plan a safe recovery."
+policy:
+  allow_implicit_invocation: false

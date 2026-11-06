@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintenance Workflow"
+  short_description: "Run a selected repository maintenance playbook"
+  default_prompt: "Use $maintenance-workflow to select and run the requested maintenance playbook."

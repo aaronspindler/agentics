@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Plan"
+  short_description: "Choose the safest implementation boundary before editing"
+  default_prompt: "Use $change-plan to choose a safe implementation boundary before editing."
+policy:
+  allow_implicit_invocation: true
