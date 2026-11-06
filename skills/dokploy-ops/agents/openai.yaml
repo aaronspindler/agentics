@@ -1,0 +1,6 @@
+interface:
+  display_name: "Dokploy Ops"
+  short_description: "Inspect live Dokploy state and guide safe operator recovery"
+  default_prompt: "Use $dokploy-ops to inspect Dokploy state and plan safe operator recovery."
+policy:
+  allow_implicit_invocation: false

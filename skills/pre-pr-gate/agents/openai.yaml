@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pre-PR Gate"
+  short_description: "Final adaptive review and fix gate before PR publication"
+  default_prompt: "Use $pre-pr-gate to run the final review and validation gate before publication."
+policy:
+  allow_implicit_invocation: true

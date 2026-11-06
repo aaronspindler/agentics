@@ -4,3 +4,9 @@
 # macOS Finder metadata
 .DS_Store
 **/.DS_Store
+
+# Python toolkit builds and local environments
+__pycache__/
+.venv/
+dist/
+build/

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Audit"
+  short_description: "Read-only audit for cohesion, docs, and frontend drift"
+  default_prompt: "Use $change-audit to audit this change for cohesion, drift, and unnecessary complexity."
+policy:
+  allow_implicit_invocation: true

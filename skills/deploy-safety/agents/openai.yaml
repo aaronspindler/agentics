@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deploy Safety"
+  short_description: "Plan deploy-safe rollout and migration boundaries"
+  default_prompt: "Use $deploy-safety to define a rollout-safe boundary for this change."
+policy:
+  allow_implicit_invocation: true

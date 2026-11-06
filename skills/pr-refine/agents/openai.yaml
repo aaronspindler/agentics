@@ -1,0 +1,6 @@
+interface:
+  display_name: "PR Refine"
+  short_description: "Fix PR feedback and validation failures"
+  default_prompt: "Use $pr-refine to apply targeted fixes for review and validation failures."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Tests"
+  short_description: "Add focused tests around the changed behavior"
+  default_prompt: "Use $change-tests to add focused regression coverage for the changed behavior."
+policy:
+  allow_implicit_invocation: true

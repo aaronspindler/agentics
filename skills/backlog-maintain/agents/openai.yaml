@@ -1,0 +1,6 @@
+interface:
+  display_name: "Backlog Maintain"
+  short_description: "Maintain GitHub issue backlog boundaries"
+  default_prompt: "Use $backlog-maintain to reconcile and maintain the GitHub issue backlog."
+policy:
+  allow_implicit_invocation: false

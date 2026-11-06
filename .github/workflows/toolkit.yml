@@ -1,0 +1,38 @@
+name: Agentics Toolkit
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "tests/**", "skills/**", "agents/**", "workflows/**", "references/**", "catalog.json", "pyproject.toml", ".github/workflows/toolkit.yml"]
+  pull_request:
+    paths: ["src/**", "tests/**", "skills/**", "agents/**", "workflows/**", "references/**", "catalog.json", "pyproject.toml", ".github/workflows/toolkit.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install '.[test]' build
+      - run: agentics validate
+      - run: python -m unittest discover -s tests -v
+      - run: python -m build
+      - name: Verify isolated wheel installation
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/agentics-wheel"
+          "$RUNNER_TEMP/agentics-wheel/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/agentics-wheel/bin/agentics" validate
+          "$RUNNER_TEMP/agentics-wheel/bin/agentics" install --all --home "$RUNNER_TEMP/agentics-home"
+          "$RUNNER_TEMP/agentics-wheel/bin/agentics" status --home "$RUNNER_TEMP/agentics-home" --json
+          "$RUNNER_TEMP/agentics-wheel/bin/agentics" uninstall --all --home "$RUNNER_TEMP/agentics-home"

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Observability Diagnosis"
+  short_description: "Diagnose incidents with bounded live telemetry"
+  default_prompt: "Use $observability-diagnosis to investigate this incident using live telemetry."
+
+policy:
+  allow_implicit_invocation: true

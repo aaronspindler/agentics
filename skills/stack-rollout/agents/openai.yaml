@@ -1,0 +1,7 @@
+interface:
+  display_name: "Stack Rollout"
+  short_description: "Deploy authorized changes and verify the real host"
+  default_prompt: "Use $stack-rollout to deploy the requested stack and verify its state."
+
+policy:
+  allow_implicit_invocation: true

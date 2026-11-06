@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Verify"
+  short_description: "Run the required lint and repo-approved validation stack"
+  default_prompt: "Use $change-verify to select and run the required validation for this change."
+policy:
+  allow_implicit_invocation: true

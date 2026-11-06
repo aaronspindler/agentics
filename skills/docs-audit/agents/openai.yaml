@@ -1,0 +1,6 @@
+interface:
+  display_name: "Docs Audit"
+  short_description: "Read-only audit for internal docs drift and cohesion"
+  default_prompt: "Use $docs-audit to find drift and duplication in the repository documentation."
+policy:
+  allow_implicit_invocation: true

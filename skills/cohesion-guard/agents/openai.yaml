@@ -1,0 +1,6 @@
+interface:
+  display_name: "Cohesion Guard"
+  short_description: "Guard feature cohesion and reuse"
+  default_prompt: "Use $cohesion-guard to keep this feature cohesive with nearby patterns."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex Maintain"
+  short_description: "Maintain repo Codex capabilities"
+  default_prompt: "Use $codex-maintain to update the repository's Codex capabilities consistently."
+policy:
+  allow_implicit_invocation: false
